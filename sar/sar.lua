@@ -1,7 +1,7 @@
 local fs = require("filesystem")
 local term = require("term")
 local serialization = require("serialization")
-local receiving = require("receiving")
+local receiving = require("sar/receiving")
 local mesaApi = require('mesasuite_api')
 local json = require('json')
 
@@ -189,3 +189,9 @@ function verifySetup()
 
     return true
 end
+
+if verifySetup() == false then
+    return
+end
+
+mainMenu()

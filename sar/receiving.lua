@@ -44,7 +44,7 @@ function acceptBOL()
         if keyCode == keyboard.keys.up and currentOption > 1 then
             currentOption = currentOption - 1
         elseif keyCode == keyboard.keys.down and currentOption < 2 then
-            currentOption = currentOption = 1
+            currentOption = currentOption + 1
         elseif keyCode == keyboard.keys.enter then
             if currentOption == 1 then -- Do scan
                 -- scan
