@@ -11,7 +11,7 @@ local func = {}
 
 local function getToken()
   if not fs.exists("/etc/mesasuite/token") then
-    return nil
+    return ''
   end
 
   local file = io.open("/etc/mesasuite/token", "r")
