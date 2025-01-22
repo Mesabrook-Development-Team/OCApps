@@ -29,9 +29,9 @@ function mainMenu()
         local optNum = tonumber(opt)
         if optNum == 1 then -- Shipping
             -- Call shipping
-        else if optNum == 2 then -- Receiving
+        elseif optNum == 2 then -- Receiving
             receiving.menu()
-        else if optNum == 3 then -- Exit
+        elseif optNum == 3 then -- Exit
             return
         end
     end

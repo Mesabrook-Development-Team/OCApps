@@ -43,12 +43,12 @@ function acceptBOL()
         local _,_,_,keyCode = term.pull('key_down')
         if keyCode == keyboard.keys.up and currentOption > 1 then
             currentOption = currentOption - 1
-        else if keyCode == keyboard.keys.down and currentOption < 2 then
+        elseif keyCode == keyboard.keys.down and currentOption < 2 then
             currentOption = currentOption = 1
-        else if keyCode == keyboard.keys.enter then
+        elseif keyCode == keyboard.keys.enter then
             if currentOption == 1 then -- Do scan
                 -- scan
-            else if currentOption == 2 then -- exit
+            elseif currentOption == 2 then -- exit
                 return
             end
         end
@@ -75,9 +75,9 @@ module.menu = function()
 
         if optNum == 1 then -- Accept BOL
             acceptBOL()
-        else if optNum == 2 then -- Cars on track
+        elseif optNum == 2 then -- Cars on track
             -- Process cars on track
-        else if optNum == 3 then -- Exit
+        elseif optNum == 3 then -- Exit
             return
         end
     end
