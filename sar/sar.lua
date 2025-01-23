@@ -50,29 +50,31 @@ local function configureLocation()
     end
 
     local companyArray = json.parse(jsonStr)
-    local companiesRemoved = 0
-    for companyIndex,company in ipairs(companyArray) do
-        local locationsRemoved = 0
-        local companyWasRemoved = false
-        for locationIndex,location in ipairs(company.Locations) do
-            success, jsonStr = mesaApi.request('company', 'GetForCurrentUser/' .. location.LocationID)
-            if success == false then
-                table.remove(companyArray, companyIndex - companiesRemoved)
-                companiesRemoved = companiesRemoved + 1
-                companyWasRemoved = true
-                break
+    local i = 1
+    while i <= #companyArray do
+        if companyArray[i].Locations == nil then
+            table.remove(companyArray, i)
+        else
+            local j = 1
+            while j <= #companyArray[i].Locations do
+                success, jsonStr = mesaApi.request('company', 'LocationEmployee/GetForCurrentUser/' .. companyArray[i].Locations[j].LocationID)
+                if success == false then
+                    table.remove(companyArray[i].Locations, j)
+                else
+                    local locationEmployee = json.parse(jsonStr)
+                    if locationEmployee == nil or locationEmployee.ManagePurchaseOrders == nil or locationEmployee.ManagePurchaseOrders == false then
+                        table.remove(companyArray[i].Locations, j)
+                    else
+                        j = j + 1
+                    end
+                end
             end
 
-            local locationEmployee = json.parse(jsonStr)
-            if locationEmployee.ManagePurchaseOrders == false then
-                table.remove(company.Locations, locationIndex - locationsRemoved)
-                locationsRemoved = locationsRemoved + 1
+            if #companyArray[i].Locations == 0 then
+                table.remove(companyArray, i)
+            else
+                i = i + 1
             end
-        end
-
-        if not companyWasRemoved and #company.Locations == 0 then
-            table.remove(companyArray, companyIndex - companiesRemoved)
-            companiesRemoved = companiesRemoved + 1
         end
     end
 
