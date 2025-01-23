@@ -5,6 +5,8 @@ local receiving = require("sar/receiving")
 local mesaApi = require('mesasuite_api')
 local json = require('json')
 
+local entityName = ''
+
 local function nl()
     local col, row = term.getCursor()
     term.setCursor(1, row + 1)
@@ -15,6 +17,8 @@ local function mainMenu()
         term.clear();
 
         term.write('* SHIPPING & RECEIVING *')
+        nl()
+        term.write(entityName)
         nl()
         nl()
         term.write('1 - Perform Shipping')
@@ -190,6 +194,11 @@ local function verifySetup()
     if (locationEmployee == nil or locationEmployee.ManagePurchaseOrders == nil or locationEmployee.ManagePurchaseOrders == false) and not promptForConfiguration('no longer authorized', 'Reconfigure') then
         return false
     end
+
+    success, jsonStr = mesaApi.request('company', 'Location/Get/' .. fileContents.LocationID, nil, {CompanyID=fileContents.CompanyID})
+    local location = json.parse(jsonStr)
+
+    entityName = location.Company.Name .. ' (' .. location.Name .. ')'
 
     return true
 end
