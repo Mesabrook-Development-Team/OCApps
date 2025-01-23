@@ -18,6 +18,10 @@ end
 local function performScan()
     local bol = printerAPI.readBOL()
 
+    if bol == nil then
+        return
+    end
+
     local locationFile = io.open('/etc/sar/loc.cfg', 'r')
     local fileContents = serialization.unserialize(locationFile:read('*a'))
     locationFile:close()
@@ -115,7 +119,7 @@ end
 filesystem.makeDirectory('/etc/sar')
 if not filesystem.exists('/etc/sar/printer.cfg') then
    local file = io.open('/etc/sar/printer.cfg', 'w')
-   file:write('openprinter.lua')
+   file:write('openprinter')
    file:close()
 end
 

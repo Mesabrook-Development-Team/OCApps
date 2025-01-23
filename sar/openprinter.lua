@@ -1,6 +1,6 @@
 local component = require('component')
 local filesystem = require('filesystem')
-local serialization = require('serialization')
+local unicode = require('unicode')
 local term = require('term')
 
 
@@ -15,7 +15,7 @@ module.isPrinterAvailable = function()
     return component.isAvailable('openprinter')
 end
 
-module.readBOL = function()
+local function getPrinter()
     filesystem.makeDirectory('/etc/sar')
     if not filesystem.exists('/etc/sar/openprinter') then
        local file = io.open('/etc/sar/openprinter', 'w')
@@ -34,15 +34,50 @@ module.readBOL = function()
             nl()
             term.write('Enter printer address:')
             printerAddr = term.read()
-        until component.get(printerAddr) ~= nil
+        until component.get(printerAddr) ~= nil and component.type(component.get(printerAddr)) == 'openprinter'
 
         local file = io.open('/etc/sar/openprinter', 'w')
         file:write(printerAddr)
         file:close()
     end
 
-    -- todo: use printer to scan and return bol #
-    return ''
+    return component.proxy(printerAddr)
+end
+
+module.readBOL = function()
+    local printerProxy = getPrinter()
+    
+    local _,pageData = printerProxy.scan()
+    if pageData == nil then
+        nl()
+        term.write('Printer was unable to scan')
+        nl()
+        term.write('Press enter to continue')
+        term.read()
+        return nil
+    end
+    
+    local bolLine = pageData[0]
+    if bolLine == nil then
+        nl()
+        term.write('Page is empty')
+        nl()
+        term.write('Press enter to continue')
+        term.read()
+        return nil
+    end
+
+    bolLine = bolLine:match("([^" .. unicode.char(0x221E) .. "]+)")
+    if #bolLine < 7 then
+        nl()
+        term.write('Unable to find BOL #')
+        nl()
+        term.write('Press enter to continue')
+        term.read()
+        return nil
+    end
+
+    return bolLine:sub(7)
 end
 
 return module
