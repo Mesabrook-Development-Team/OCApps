@@ -1,5 +1,12 @@
 local term = require('term')
 local keyboard = require('keyboard')
+local event = require('event')
+local filesystem = require('filesystem')
+local mesaApi = require('mesasuite_api')
+local serialization = require('serialization')
+
+local printerAvailable = false
+local printerAPI = {}
 
 local module = {}
 
@@ -9,12 +16,31 @@ local function nl()
 end
 
 local function performScan()
+    local bol = printerAPI.readBOL()
 
+    local locationFile = io.open('/etc/sar/loc.cfg', 'r')
+    local fileContents = serialization.unserialize(locationFile:read('*a'))
+    locationFile:close()
+
+    local success = mesaApi.request('company', 'BillOfLading/AcceptBOL', {BillOfLadingID=bol}, {CompanyID=fileContents.CompanyID,LocationID=fileContents.LocationID}, 'POST')
+
+    nl()
+    if success then
+        term.write('Bill of Lading Accepted')
+        os.sleep(2)
+    else
+        term.write('Bill of Lading Not Accepted')
+        nl()
+        term.write('Try using MesaSuite instead')
+        nl()
+        nl()
+        term.write('Press any key to acknowledge')
+        term.read()
+    end
 end
 
 local function acceptBOL()
     local currentOption = 1
-    term.setCursorBlink(false)
 
     while true do
         term.clear()
@@ -29,25 +55,25 @@ local function acceptBOL()
         else
             term.write(" ")
         end
-        term.write(") - Scan page from scanner")
+        term.write("] - Scan page from scanner")
         nl()
         
         term.write("[")
-        if currentOption == 1 then
+        if currentOption == 2 then
             term.write("x")
         else
             term.write(" ")
         end
-        term.write(") - Finish scanning")
+        term.write("] - Finish scanning")
 
-        local _,_,_,keyCode = term.pull('key_down')
+        local _,_,_,keyCode = event.pull('key_down')
         if keyCode == keyboard.keys.up and currentOption > 1 then
             currentOption = currentOption - 1
         elseif keyCode == keyboard.keys.down and currentOption < 2 then
             currentOption = currentOption + 1
         elseif keyCode == keyboard.keys.enter then
             if currentOption == 1 then -- Do scan
-                -- scan
+                performScan()
             elseif currentOption == 2 then -- exit
                 return
             end
@@ -63,6 +89,9 @@ module.menu = function()
         nl()
         nl()
         term.write('1 - Accept Bills Of Lading')
+        if not printerAvailable then
+           term.write(' (Printer Unavailable)')
+        end
         nl()
         term.write('2 - Process Cars on Track')
         nl()
@@ -73,7 +102,7 @@ module.menu = function()
         local opt = term.read()
         local optNum = tonumber(opt)
 
-        if optNum == 1 then -- Accept BOL
+        if optNum == 1 and printerAvailable then -- Accept BOL
             acceptBOL()
         elseif optNum == 2 then -- Cars on track
             -- Process cars on track
@@ -82,5 +111,18 @@ module.menu = function()
         end
     end
 end
+
+filesystem.makeDirectory('/etc/sar')
+if not filesystem.exists('/etc/sar/printer.cfg') then
+   local file = io.open('/etc/sar/printer.cfg', 'w')
+   file:write('openprinter.lua')
+   file:close()
+end
+
+local file = io.open('/etc/sar/printer.cfg', 'r')
+printerAPI = require(file:read('*a'))
+file:close()
+
+printerAvailable = printerAPI.isPrinterAvailable()
 
 return module
