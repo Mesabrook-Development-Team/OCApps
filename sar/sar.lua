@@ -50,22 +50,27 @@ function configureLocation()
     end
 
     local companyArray = json.parse(jsonStr)
+    local companiesRemoved = 0
     for companyIndex,company in ipairs(companyArray) do
+        local locationsRemoved = 0
         for locationIndex,location in ipairs(company.Locations) do
             success, jsonStr = mesaApi.request('company', 'GetForCurrentUser/' .. location.LocationID)
             if success == false then
-                table.remove(companyArray, companyIndex)
+                table.remove(companyArray, companyIndex - companiesRemoved)
+                companiesRemoved = companiesRemoved + 1
                 break
             end
 
             local locationEmployee = json.parse(jsonStr)
             if locationEmployee.ManagePurchaseOrders == false then
-                table.remove(company.Locations, locationIndex)
+                table.remove(company.Locations, locationIndex - locationsRemoved)
+                locationsRemoved = locationsRemoved + 1
             end
         end
 
         if #company.Locations == 0 then
-            table.remove(companyArray, companyIndex)
+            table.remove(companyArray, companyIndex - companiesRemoved)
+            companiesRemoved = companiesRemoved + 1
         end
     end
 
@@ -91,7 +96,7 @@ function configureLocation()
         local opt = term.read()
         local optNum = tonumber(opt)
 
-        if optNum > 0 and optNum <= #companyArray then
+        if optNum ~= nil and optNum > 0 and optNum <= #companyArray then
             selectedCompanyIndex = optNum
             break
         end
@@ -104,7 +109,7 @@ function configureLocation()
         term.write('Your locations:')
         nl()
         nl()
-        for i,location in ipairs(company.Locations) do
+        for i,location in ipairs(selectedCompany.Locations) do
             term.write(i .. ' - ' .. location.Name)
             nl()
         end
@@ -113,13 +118,13 @@ function configureLocation()
         local opt = term.read()
         local optNum = tonumber(opt)
 
-        if optNum > 0 and optNum <= #company.Locations then
+        if optNum ~= nil and optNum > 0 and optNum <= #selectedCompany.Locations then
             selectedLocationIndex = optNum
             break
         end
     end
 
-    local selectedLocation = company.Locations[selectedLocationIndex]
+    local selectedLocation = selectedCompany.Locations[selectedLocationIndex]
     local fileContents = {CompanyID=selectedCompany.CompanyID, LocationID=selectedLocation.LocationID}
 
     local file = io.open('/etc/sar/loc.cfg', 'w')
@@ -151,7 +156,7 @@ function verifySetup()
             nl()
             term.write('Configure now (y/n)?')
             local opt = term.read()
-            if string.lower(opt) == "y" then -- Do configuration
+            if opt:gsub("%s+", "") == "y" then -- Do configuration
                 if configureLocation() == false then
                     return false
                 end
