@@ -171,11 +171,16 @@ funcs["refresh_token"] = function()
       if not success then
         return
       end
+
+      local tokenResponseString = ''
+      for chunk in handle do
+        tokenResponseString = tokenResponseString .. chunk
+      end
     
-      local _,endIndex = handle:find('"access_token":"')
-      local accessToken = handle:sub(endIndex+1, endIndex+36)
-      _,endIndex = handle:find('"refresh_token":"')
-      refreshToken = handle:sub(endIndex+1, endIndex+36)
+      local tokenResponseObject = json.parse(tokenResponseString)
+
+      local accessToken = tokenResponseObject["access_token"]
+      refreshToken = tokenResponseObject["refresh_token"]
     
       tokenData.token = accessToken
       tokenData.refresh_token=refreshToken
