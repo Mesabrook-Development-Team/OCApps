@@ -27,7 +27,9 @@ local function getPrinter()
     local printerAddr = file:read('*a')
     file:close()
 
-    if component.get(printerAddr) == nil then
+    local proxy = component.proxy(printerAddr)
+
+    if proxy == nil then
         repeat
             nl()
             term.write('Printer not found')
@@ -39,9 +41,11 @@ local function getPrinter()
         local file = io.open('/etc/sar/openprinter', 'w')
         file:write(printerAddr)
         file:close()
+
+        proxy = component.proxy(printerAddr)
     end
 
-    return component.proxy(printerAddr)
+    return proxy
 end
 
 module.readBOL = function()

@@ -119,7 +119,7 @@ end
 filesystem.makeDirectory('/etc/sar')
 if not filesystem.exists('/etc/sar/printer.cfg') then
    local file = io.open('/etc/sar/printer.cfg', 'w')
-   file:write('openprinter')
+   file:write('sar/openprinter')
    file:close()
 end
 
