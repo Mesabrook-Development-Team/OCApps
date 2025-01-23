@@ -64,13 +64,13 @@ local function configureLocation()
             end
 
             local locationEmployee = json.parse(jsonStr)
-            if not companyWasRemoved and locationEmployee.ManagePurchaseOrders == false then
+            if locationEmployee.ManagePurchaseOrders == false then
                 table.remove(company.Locations, locationIndex - locationsRemoved)
                 locationsRemoved = locationsRemoved + 1
             end
         end
 
-        if #company.Locations == 0 then
+        if not companyWasRemoved and #company.Locations == 0 then
             table.remove(companyArray, companyIndex - companiesRemoved)
             companiesRemoved = companiesRemoved + 1
         end
