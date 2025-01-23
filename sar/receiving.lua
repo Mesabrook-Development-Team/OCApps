@@ -3,16 +3,16 @@ local keyboard = require('keyboard')
 
 local module = {}
 
-function nl()
+local function nl()
     local col, row = term.getCursor()
     term.setCursor(1, row + 1)
 end
 
-function performScan()
+local function performScan()
 
 end
 
-function acceptBOL()
+local function acceptBOL()
     local currentOption = 1
     term.setCursorBlink(false)
 

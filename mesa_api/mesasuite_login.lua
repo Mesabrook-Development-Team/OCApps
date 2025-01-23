@@ -1,28 +1,23 @@
-local baseOAuthUrl = "https://auth.mesabrook.com"
+local fs = require("filesystem")
+fs.makeDirectory("/etc/mesasuite")
+if not fs.exists("/etc/mesasuite/authURL") then
+    local authFile = io.open('/etc/mesasuite/authURL', 'w')
+    authFile:write('https://auth.mesabrook.com')
+    authFile:close()
+end
+
+local authFile = io.open('/etc/mesasuite/authURL', 'r')
+local baseOAuthUrl = authFile:read('*a')
+authFile:close()
 
 local web = require("internet")
 local term = require("term")
 local comp = require("component")
-local fs = require("filesystem")
 local cereal = require("serialization")
 local json = require("json")
 local event = require("event")
 
-local clientid = comp.getPrimary("computer").address
-
-function getCodeFromError(error)
-    if error:match("400") then return 400
-    elseif error:match("401") then return 401
-    elseif error:match("404") then return 404
-    elseif error:match("500") then return 500
-    else return 0 end
-end
-
-function retrieveClientID()
-    if not fs.exists("/etc/mesasuite") then
-        fs.makeDirectory("/etc/mesasuite")
-    end
-
+local function retrieveClientID()
     local file = io.open("/etc/mesasuite/clientid", "r")
     if not file then
         term.clear()
@@ -59,7 +54,7 @@ end
 
 
 
-function doDeviceCodeChecking(data, clientID)
+local function doDeviceCodeChecking(data, clientID)
     term.clear()
     term.setCursor(1,1)
     term.write('Please login to ' .. data.verification_uri .. ' and enter code ' .. data.user_code, true)

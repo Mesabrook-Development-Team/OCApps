@@ -1,6 +1,17 @@
-local baseOAuthUrl = "https://auth.mesabrook.com"
+local fs = require("filesystem")
+fs.makeDirectory("/etc/mesasuite")
+if not fs.exists("/etc/mesasuite/apiURL") then
+    local authFile = io.open('/etc/mesasuite/apiURL', 'w')
+    authFile:write('https://api.mesabrook.com')
+    authFile:close()
+end
+
+local authFile = io.open('/etc/mesasuite/apiURL', 'r')
+local baseApiUrl = authFile:read('*a')
+authFile:close()
+
 local function getAPIUrl(api)
-  return "https://api.mesabrook.com/" .. api .. "/"
+  return baseApiUrl .. "/" .. api .. "/"
 end
 
 local web = require("internet")

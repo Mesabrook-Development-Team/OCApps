@@ -5,12 +5,12 @@ local receiving = require("sar/receiving")
 local mesaApi = require('mesasuite_api')
 local json = require('json')
 
-function nl()
+local function nl()
     local col, row = term.getCursor()
     term.setCursor(1, row + 1)
 end
 
-function mainMenu()
+local function mainMenu()
     while true do
         term.clear();
 
@@ -37,7 +37,7 @@ function mainMenu()
     end
 end
 
-function configureLocation()
+local function configureLocation()
     term.clear()
     term.write("Loading your companies...")
     nl()
@@ -53,16 +53,18 @@ function configureLocation()
     local companiesRemoved = 0
     for companyIndex,company in ipairs(companyArray) do
         local locationsRemoved = 0
+        local companyWasRemoved = false
         for locationIndex,location in ipairs(company.Locations) do
             success, jsonStr = mesaApi.request('company', 'GetForCurrentUser/' .. location.LocationID)
             if success == false then
                 table.remove(companyArray, companyIndex - companiesRemoved)
                 companiesRemoved = companiesRemoved + 1
+                companyWasRemoved = true
                 break
             end
 
             local locationEmployee = json.parse(jsonStr)
-            if locationEmployee.ManagePurchaseOrders == false then
+            if not companyWasRemoved and locationEmployee.ManagePurchaseOrders == false then
                 table.remove(company.Locations, locationIndex - locationsRemoved)
                 locationsRemoved = locationsRemoved + 1
             end
@@ -132,7 +134,7 @@ function configureLocation()
     file:close()
 end
 
-function verifySetup()
+local function verifySetup()
     term.clear()
     term.write("Application is loading...")
 

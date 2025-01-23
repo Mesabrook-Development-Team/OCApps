@@ -24,7 +24,7 @@ end
 print("Found " .. printerCount .. " printers")
 print("")
 
-function printJob(data, printer)
+local function printJob(data, printer)
     local printJobData = json.parse(data)
 
     local anyJobs = false
@@ -66,7 +66,7 @@ function printJob(data, printer)
     end
 end
 
-function register(_,_,_,key)
+local function register(_,_,_,key)
     term.write("Enter address of printer:")
     local address = io.read()
 
@@ -93,7 +93,7 @@ function register(_,_,_,key)
     end
 end
 
-function displayOptions()
+local function displayOptions()
     print("")
     print("P - Print all pending jobs")
     print("R - Register a printer")
@@ -101,7 +101,7 @@ function displayOptions()
     term.write("Enter an option:")
 end
 
-function checkForPrintJobs()
+local function checkForPrintJobs()
     for k,v in pairs(netPrinters) do
         local success, result = api.request("system", "PrintJob/GetForPrinter?printerID=" .. k, {}, nil, "GET")
         if success then
