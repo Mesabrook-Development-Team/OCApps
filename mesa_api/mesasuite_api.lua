@@ -56,7 +56,7 @@ func.request = function(api, action, payload, additionalHeaders, method, isRetry
 
     if not success and not isRetry and handle:match("401") then
       loginAPI.refresh_token()
-      return func.request(api, action, payload, additionalheaders, method, true)
+      return func.request(api, action, payload, additionalHeaders, method, true)
     end
 
     return success, handle

@@ -57,7 +57,7 @@ local function configureLocation()
         else
             local j = 1
             while j <= #companyArray[i].Locations do
-                success, jsonStr = mesaApi.request('company', 'LocationEmployee/GetForCurrentUser/' .. companyArray[i].Locations[j].LocationID)
+                success, jsonStr = mesaApi.request('company', 'LocationEmployee/GetForCurrentUser?locationid=' .. companyArray[i].Locations[j].LocationID, nil, {CompanyID=companyArray[i].CompanyID})
                 if success == false then
                     table.remove(companyArray[i].Locations, j)
                 else
@@ -140,8 +140,8 @@ local function verifySetup()
     term.clear()
     term.write("Application is loading...")
 
-    local isLoggedIn = mesaApi.request('company', 'Company/GetAll')
-    if isLoggedIn == false then
+    local success, jsonStr = mesaApi.request('company', 'Company/GetAll')
+    if success == false then
         term.clear()
         term.write("You're not logged into MesaSuite")
         nl()
@@ -152,13 +152,13 @@ local function verifySetup()
 
     fs.makeDirectory('/etc/sar')
 
-    if not fs.exists('/etc/sar/loc.cfg') then
+    local promptForConfiguration = function(reason, cta)
         while true do
             term.clear()
-            term.write('Required Company and Location information is missing.')
+            term.write('Required Company and Location information is ' .. reason .. '.', true)
             nl()
             nl()
-            term.write('Configure now (y/n)?')
+            term.write(cta .. ' now (y/n)?')
             local opt = term.read()
             if opt:gsub("%s+", "") == "y" then -- Do configuration
                 if configureLocation() == false then
@@ -172,28 +172,23 @@ local function verifySetup()
         end
     end
 
+    if not fs.exists('/etc/sar/loc.cfg') and not promptForConfiguration('missing', 'Configure') then
+        return false
+    end
+
     local configFile = io.open('/etc/sar/loc.cfg', 'r')
     local fileContentsStr = configFile:read("*a")
     local fileContents = serialization.unserialize(fileContentsStr)
 
-    if tonumber(fileContents.CompanyID) == nil or tonumber(fileContents.LocationID) == nil then
-        while true do
-            term.clear()
-            term.write('Required Company and Location information is corrupted.')
-            nl()
-            nl()
-            term.write('Reconfigure now (y/n)?')
-            local opt = term.read()
-            if string.lower(opt) == "y" then -- Do configuration
-                if configureLocation() == false then
-                    return false
-                end
-                break
-            else
-                nl()
-                return false
-            end
-        end
+    if (fileContents == nil or tonumber(fileContents.CompanyID) == nil or tonumber(fileContents.LocationID) == nil) and not promptForConfiguration('corrupted', 'Reconfigure') then
+        return false
+    end
+
+    success, jsonStr = mesaApi.request('company', 'LocationEmployee/GetForCurrentUser?locationid=' .. fileContents.LocationID, nil, {CompanyID=fileContents.CompanyID})
+    local locationEmployee = json.parse(jsonStr)
+
+    if (locationEmployee == nil or locationEmployee.ManagePurchaseOrders == nil or locationEmployee.ManagePurchaseOrders == false) and not promptForConfiguration('no longer authorized', 'Reconfigure') then
+        return false
     end
 
     return true
