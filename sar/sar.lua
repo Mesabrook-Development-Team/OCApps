@@ -189,16 +189,26 @@ local function verifySetup()
     end
 
     success, jsonStr = mesaApi.request('company', 'LocationEmployee/GetForCurrentUser?locationid=' .. fileContents.LocationID, nil, {CompanyID=fileContents.CompanyID})
+    if not success then
+       term.write('Could not verify your location permissions')
+       nl()
+       return false
+    end
+
     local locationEmployee = json.parse(jsonStr)
 
     if (locationEmployee == nil or locationEmployee.ManagePurchaseOrders == nil or locationEmployee.ManagePurchaseOrders == false) and not promptForConfiguration('no longer authorized', 'Reconfigure') then
         return false
     end
 
-    success, jsonStr = mesaApi.request('company', 'Location/Get/' .. fileContents.LocationID, nil, {CompanyID=fileContents.CompanyID})
-    local location = json.parse(jsonStr)
+    success, jsonStr = mesaApi.request('company', 'Location/Get/' .. fileContents.LocationID, nil, {CompanyID=fileContents.CompanyID,LocationID=fileContents.LocationID})
+    if success then
+        local location = json.parse(jsonStr)
 
-    entityName = location.Company.Name .. ' (' .. location.Name .. ')'
+        entityName = location.Company.Name .. ' (' .. location.Name .. ')'
+    else
+        entityName = '[Company Name Unavailable]'
+    end
 
     return true
 end
