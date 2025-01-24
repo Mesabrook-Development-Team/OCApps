@@ -2,6 +2,7 @@ local fs = require("filesystem")
 local term = require("term")
 local serialization = require("serialization")
 local receiving = require("sar/receiving")
+local shipping = require("sar/shipping")
 local mesaApi = require('mesasuite_api')
 local json = require('json')
 
@@ -32,7 +33,7 @@ local function mainMenu()
         local opt = term.read()
         local optNum = tonumber(opt)
         if optNum == 1 then -- Shipping
-            -- Call shipping
+            shipping.menu()
         elseif optNum == 2 then -- Receiving
             receiving.menu()
         elseif optNum == 3 then -- Exit

@@ -15,6 +15,7 @@ local function nl()
     term.setCursor(1, row + 1)
 end
 
+-- BOL Stuff
 local function performScan()
     local bol = printerAPI.readBOL()
 
@@ -85,6 +86,9 @@ local function acceptBOL()
     end
 end
 
+-- Process cars on track
+
+-- Main Menu
 module.menu = function()
     while true do
         term.clear()
@@ -97,9 +101,11 @@ module.menu = function()
            term.write(' (Printer Unavailable)')
         end
         nl()
-        term.write('2 - Process Cars on Track')
+        term.write('2 - Process Cars From Sensor(s)')
         nl()
-        term.write('3 - Return to Main Menu')
+        term.write('3 - Process Cars on Track')
+        nl()
+        term.write('4 - Return to Main Menu')
         nl()
         nl()
         term.write('Enter an option:')
@@ -108,9 +114,11 @@ module.menu = function()
 
         if optNum == 1 and printerAvailable then -- Accept BOL
             acceptBOL()
-        elseif optNum == 2 then -- Cars on track
+        elseif optNum == 2 then -- Cars from sensors
+            -- Process cars from sensors
+        elseif optNum == 3 then -- Cars on track
             -- Process cars on track
-        elseif optNum == 3 then -- Exit
+        elseif optNum == 4 then -- Exit
             return
         end
     end
