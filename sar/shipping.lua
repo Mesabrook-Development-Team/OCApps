@@ -77,7 +77,7 @@ local function processFromMesaSuite()
             end
         end
 
-        if relatedPurchaseOrder ~= nil and relatedPurchaseOrder.LocationIDDestination == fileContents.LocationID then
+        if relatedPurchaseOrder ~= nil and relatedPurchaseOrder.LocationIDDestination == locationID then
             selectedCars[railcar.ReportingMark .. railcar.ReportingNumber] = railcar.RailcarID
         end
     end
@@ -321,21 +321,21 @@ local function performLoading()
                         table.insert(selectablePurchaseOrderLines, purchaseOrderLine)
 
                         local incompleteFulfillmentQuantity = 0
-                        for _,fulfillment in purchaseOrderLine.Fulfillments do
+                        for _,fulfillment in ipairs(purchaseOrderLine.Fulfillments) do
                             if not fulfillment.IsComplete then
                                 incompleteFulfillmentQuantity = incompleteFulfillmentQuantity + fulfillment.Quantity
                             end
                         end
 
                         local railcarLoadQuantity = 0
-                        for _,railcarLoad in purchaseOrderLine.RailcarLoads do
+                        for _,railcarLoad in ipairs(purchaseOrderLine.RailcarLoads) do
                             railcarLoadQuantity = railcarLoadQuantity + railcarLoad.Quantity
                         end
 
                         local loadQuantityWithoutFulfillment = math.max(railcarLoadQuantity - incompleteFulfillmentQuantity, 0)
 
                         local poLineHasFulfillmentPlanForRailcar = false
-                        for _,fulfillmentPlanPurchaseOrderLine in purchaseOrderLine.FulfillmentPlanPurchaseOrderLines do
+                        for _,fulfillmentPlanPurchaseOrderLine in ipairs(purchaseOrderLine.FulfillmentPlanPurchaseOrderLines) do
                             poLineHasFulfillmentPlanForRailcar = fulfillmentPlanPurchaseOrderLine.FulfillmentPlan.RailcarID == railcarID
                             if poLineHasFulfillmentPlanForRailcar then break end
                         end
@@ -350,14 +350,14 @@ local function performLoading()
 
                 if suggestedPurchaseOrderLine ~= nil then
                     local incompleteFulfillmentQuantity = 0
-                    for _,fulfillment in suggestedPurchaseOrderLine.Fulfillments do
+                    for _,fulfillment in ipairs(suggestedPurchaseOrderLine.Fulfillments) do
                         if not fulfillment.IsComplete then
                             incompleteFulfillmentQuantity = incompleteFulfillmentQuantity + fulfillment.Quantity
                         end
                     end
 
                     local railcarLoadQuantity = 0
-                    for _,railcarLoad in suggestedPurchaseOrderLine.RailcarLoads do
+                    for _,railcarLoad in ipairs(suggestedPurchaseOrderLine.RailcarLoads) do
                         railcarLoadQuantity = railcarLoadQuantity + railcarLoad.Quantity
                     end
 
