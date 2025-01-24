@@ -321,10 +321,12 @@ local function performLoading()
                         table.insert(selectablePurchaseOrderLines, purchaseOrderLine)
 
                         local incompleteFulfillmentQuantity = 0
+                        local fulfillmentQuantity = 0
                         for _,fulfillment in ipairs(purchaseOrderLine.Fulfillments) do
                             if not fulfillment.IsComplete then
                                 incompleteFulfillmentQuantity = incompleteFulfillmentQuantity + fulfillment.Quantity
                             end
+                            fulfillmentQuantity = fulfillmentQuantity + fulfillment.Quantity
                         end
 
                         local railcarLoadQuantity = 0
@@ -340,8 +342,9 @@ local function performLoading()
                             if poLineHasFulfillmentPlanForRailcar then break end
                         end
 
+                        local unfulfilledQuantity = purchaseOrderLine.Quantity - fulfillmentQuantity
                         if suggestedPurchaseOrderLine == nil and
-                                purchaseOrderLine.UnfulfilledQuantity - loadQuantityWithoutFulfillment > 0 and
+                                unfulfilledQuantity - loadQuantityWithoutFulfillment > 0 and
                                 poLineHasFulfillmentPlanForRailcar then
                             suggestedPurchaseOrderLine = purchaseOrderLine
                         end
@@ -350,10 +353,13 @@ local function performLoading()
 
                 if suggestedPurchaseOrderLine ~= nil then
                     local incompleteFulfillmentQuantity = 0
+                    local fulfillmentQuantity = 0
                     for _,fulfillment in ipairs(suggestedPurchaseOrderLine.Fulfillments) do
                         if not fulfillment.IsComplete then
                             incompleteFulfillmentQuantity = incompleteFulfillmentQuantity + fulfillment.Quantity
                         end
+
+                        fulfillmentQuantity = fulfillmentQuantity + fulfillment.Quantity
                     end
 
                     local railcarLoadQuantity = 0
@@ -366,7 +372,8 @@ local function performLoading()
                     selectedPurchaseOrderLine = suggestedPurchaseOrderLine
                     selectedItem = suggestedPurchaseOrderLine.Item
 
-                    local suggestedQuantity = suggestedPurchaseOrderLine.UnfulfilledQuantity - alreadyFulfilledAmount
+                    local unfulfilledQuantity = suggestedPurchaseOrderLine.Quantity - fulfillmentQuantity
+                    local suggestedQuantity = unfulfilledQuantity - alreadyFulfilledAmount
                     if suggestedQuantity > railcar.RailcarModel.CargoCapcity - loadedQuantity then
                         suggestedQuantity = railcar.RailcarModel.CargoCapcity - loadedQuantity
                     end
