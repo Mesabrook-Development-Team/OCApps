@@ -2,6 +2,7 @@ local component = require('component')
 local filesystem = require('filesystem')
 local unicode = require('unicode')
 local term = require('term')
+local text = require('text')
 
 
 local module = {}
@@ -35,7 +36,7 @@ local function getPrinter()
             term.write('Printer not found')
             nl()
             term.write('Enter printer address:')
-            printerAddr = term.read()
+            printerAddr = text.trim(term.read())
         until component.get(printerAddr) ~= nil and component.type(component.get(printerAddr)) == 'openprinter'
 
         local file = io.open('/etc/sar/openprinter', 'w')
