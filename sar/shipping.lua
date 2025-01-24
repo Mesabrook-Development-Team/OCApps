@@ -374,8 +374,8 @@ local function performLoading()
 
                     local unfulfilledQuantity = suggestedPurchaseOrderLine.Quantity - fulfillmentQuantity
                     local suggestedQuantity = unfulfilledQuantity - alreadyFulfilledAmount
-                    if suggestedQuantity > railcar.RailcarModel.CargoCapcity - loadedQuantity then
-                        suggestedQuantity = railcar.RailcarModel.CargoCapcity - loadedQuantity
+                    if suggestedQuantity > railcar.RailcarModel.CargoCapacity - loadedQuantity then
+                        suggestedQuantity = railcar.RailcarModel.CargoCapacity - loadedQuantity
                     end
 
                     suggestedQuantity = math.max(suggestedQuantity, 0)
@@ -398,13 +398,18 @@ local function performLoading()
             nl()
             term.write('---------------')
             nl()
-            for loadIndex,load in ipairs(railcar.RailcarLoads) do
-                term.write(loadIndex .. ': ' .. load.Quantity .. 'x ' .. load.Item.Name)
+            if #railcar.RailcarLoads == 0 then
+                term.write('* No loads *')
                 nl()
-                if load.PurchaseOrderLineID ~= nil then
-                    local _, row = term.getCursor()
-                    term.setCursor(#tostring(loadIndex) + 2, row)
-                    term.write('PO: ' .. load.PurchaseOrderLine.PurchaseOrderID .. ' (' .. getPurchaseOrderLineDisplayString(load.PurchaseOrderLine) .. ')')
+            else
+                for loadIndex,load in ipairs(railcar.RailcarLoads) do
+                    term.write(loadIndex .. ': ' .. load.Quantity .. 'x ' .. load.Item.Name)
+                    nl()
+                    if load.PurchaseOrderLineID ~= nil then
+                        local _, row = term.getCursor()
+                        term.setCursor(#tostring(loadIndex) + 2, row)
+                        term.write('PO: ' .. load.PurchaseOrderLine.PurchaseOrderID .. ' (' .. getPurchaseOrderLineDisplayString(load.PurchaseOrderLine) .. ')')
+                    end
                 end
             end
             term.write('---------------')
@@ -434,6 +439,7 @@ local function performLoading()
                 nl()
 
                 term.write('Quantity: ' .. selectedQuantity)
+                nl()
                 nl()
 
                 term.write('1 - Change Purchase Order Line')
