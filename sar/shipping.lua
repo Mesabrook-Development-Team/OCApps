@@ -231,6 +231,103 @@ local function selectQuantity()
     end
 end
 
+local function addLoadToRailcar(railcarID, purchaseOrderLine, item, quantity)
+    if railcarID == nil or item == nil or item.ItemID == nil or quantity == nil or tonumber(quantity) == nil then
+        term.write('An Item and Quantity must be selected')
+        nl()
+        term.write('Press enter to continue')
+        nl()
+        term.read()
+        return false
+    end
+
+    local purchaseOrderLineID = nil
+    if purchaseOrderLine ~= nil and purchaseOrderLine.PurchaseOrderLineID ~= nil then
+        purchaseOrderLineID = purchaseOrderLine.PurchaseOrderLineID
+    end
+
+    local railcarLoad = {
+        RailcarID = railcarID,
+        ItemID = item.ItemID,
+        Quantity = quantity,
+        PurchaseOrderLineID = purchaseOrderLineID
+    }
+
+    local success, jsonStr = mesaApi.request('company', 'Railcar/Load', json.serialize(railcarLoad), {CompanyID=companyID, LocationID=locationID}, 'POST')
+    if success == false or jsonStr == 'null' then
+        term.write('Failed to add load to Railcar')
+        nl()
+        term.write('Press enter to continue')
+        nl()
+        term.read()
+        return false
+    end
+
+    return true
+end
+
+local function finalizeLoading(railcar)
+    -- Get current time
+    local internet = require('internet')
+    local handle = internet.request('http://worldtimeapi.org/api/timezone/America/Chicago')
+
+    local response = ''
+    for chunk in handle do response = response .. chunk end
+
+    local timeInfo = json.parse(response)
+
+    local fulfillmentIDs = {}
+
+    for _,load in ipairs(railcar.RailcarLoads) do
+        if load.PurchaseOrderLineID == nil or load.Quantity == nil or load.Quantity <= 0 then
+            goto continue
+        end
+
+        local fulfillment = {
+            RailcarID = railcar.RailcarID,
+            PurchaseOrderLineID = load.PurchaseOrderLineID,
+            Quantity = load.Quantity,
+            FulfillmentTime = timeInfo.datetime
+        }
+
+        local success, jsonStr = mesaApi.request('company', 'Fulfillment/Post', json.serialize(fulfillment), {CompanyID=companyID, LocationID=locationID}, 'POST')
+        if success and jsonStr ~= 'null' then
+            local savedFulfillment = json.parse(jsonStr)
+            table.insert(fulfillmentIDs, savedFulfillment.FulfillmentID)
+        end
+
+        ::continue::
+    end
+
+    if #fulfillmentIDs > 0 then
+       mesaApi.request('company', 'Fulfillment/IssueBillsOfLading', json.serialize(fulfillmentIDs), {CompanyID=companyID, LocationID=locationID}, 'POST')
+    else
+        term.write('Finalizing is not possible without at least one load issued to a Purchase Order')
+        nl()
+        term.write('Press enter to continue')
+        nl()
+        term.read()
+    end
+end
+
+local function releaseRailcar(railcar, releaseableInformation)
+    local releaseInfo = {
+        RailcarID = railcar.RailcarID,
+        CompanyIDReleaseTo = releaseableInformation.CompanyIDTo,
+        GovernmentIDReleaseTo = releaseableInformation.GovernmentIDTo
+    }
+
+    local success = mesaApi.request('company', 'Railcar/Release', json.serialize(releaseInfo), {CompanyID=companyID, LocationID=locationID}, 'POST')
+    if success == false or jsonStr == 'null' then
+        term.write('Failed to release railcar')
+        nl()
+        term.write('Press enter to continue')
+        nl()
+        term.read()
+    end
+    return success
+end
+
 local function performLoading()
     local function getFromMesa(resource)
         local success, jsonStr = mesaApi.request('company', resource, nil, {CompanyID=companyID, LocationID=locationID})
@@ -243,51 +340,40 @@ local function performLoading()
 
     while next(selectedCars) ~= nil do
         local reportingMark, railcarID = next(selectedCars)
-        term.clear()
-        term.write('Setting up data for ' .. reportingMark .. '...')
-        nl()
 
-        local railcar = getFromMesa('Railcar/Get/' .. railcarID)
-        if railcar == nil then
-            selectedCars[reportingMark] = nil  
-            goto continue
-        end
-
+        local railcar = nil
         local loadedQuantity = 0
-        for _,load in ipairs(railcar.RailcarLoads) do
-            loadedQuantity = loadedQuantity + load.Quantity
-        end
-
         local releasebleInformation = {mustRelease = false}
         local selectablePurchaseOrderLines = {}
         local selectedPurchaseOrderLine = nil
         local selectedItem = nil
         local selectedQuantity = 0
 
-        local fulfillments = getFromMesa('Fulfillment/GetCurrentByRailcar/' .. railcarID)
-        if fulfillments ~= nil and #fulfillments > 0 then
-            releasebleInformation.mustRelease = true
-            if #railcar.RailcarRoutes > 0 then
-                table.sort(railcar.RailcarRoutes, function (a, b)
-                   return a.SortOrder < b.SortOrder
-                end)
+        local function reloadData()
+            term.clear()
+            term.write('Setting up data for ' .. reportingMark .. '...')
+            nl()
 
-                local firstRoute = railcar.RailcarRoutes[1]
-                if firstRoute.GovernmentIDTo ~= nil then
-                    releasebleInformation.To = firstRoute.GovernmentTo.Name
-                elseif firstRoute.CompanyIDTo ~= nil then
-                    releasebleInformation.To = firstRoute.CompanyTo.Name
-                end
-                releasebleInformation.CompanyIDTo = firstRoute.CompanyIDTo
-                releasebleInformation.GovernmentIDTo = firstRoute.GovernmentIDTo
-            else
-                local fulfillmentPlan = getFromMesa('FulfillmentPlan/GetByRailcar/' .. railcarID)
-                if fulfillmentPlan ~= nil and #fulfillmentPlan.FulfillmentPlanRoutes > 0 then
-                    table.sort(fulfillmentPlan.FulfillmentPlanRoutes, function (a, b)
-                        return a.SortOrder < b.SortOrder
+            railcar = getFromMesa('Railcar/Get/' .. railcarID)
+            if railcar == nil then
+                selectedCars[reportingMark] = nil  
+                return
+            end
+
+            for _,load in ipairs(railcar.RailcarLoads) do
+                loadedQuantity = loadedQuantity + load.Quantity
+            end
+
+
+            local fulfillments = getFromMesa('Fulfillment/GetCurrentByRailcar/' .. railcarID)
+            if fulfillments ~= nil and #fulfillments > 0 then
+                releasebleInformation.mustRelease = true
+                if #railcar.RailcarRoutes > 0 then
+                    table.sort(railcar.RailcarRoutes, function (a, b)
+                    return a.SortOrder < b.SortOrder
                     end)
 
-                    local firstRoute = fulfillmentPlan.FulfillmentPlanRoutes[1]
+                    local firstRoute = railcar.RailcarRoutes[1]
                     if firstRoute.GovernmentIDTo ~= nil then
                         releasebleInformation.To = firstRoute.GovernmentTo.Name
                     elseif firstRoute.CompanyIDTo ~= nil then
@@ -295,96 +381,118 @@ local function performLoading()
                     end
                     releasebleInformation.CompanyIDTo = firstRoute.CompanyIDTo
                     releasebleInformation.GovernmentIDTo = firstRoute.GovernmentIDTo
-                end
-            end
-        else
-            local purchaseOrders = getFromMesa('PurchaseOrder/GetAllRelatedToLocation')
-            local suggestedPurchaseOrderLine = nil
-            if purchaseOrders ~= nil and #purchaseOrders > 0 then
-                local i = 1
-                while i <= #purchaseOrders do
-                    local purchaseOrder = purchaseOrders[i]
-                   
-                    if purchaseOrder.LocationIDDestination ~= locationID then
-                        table.remove(purchaseOrders, i)
-                    else
-                        i = i + 1
+                else
+                    local fulfillmentPlan = getFromMesa('FulfillmentPlan/GetByRailcar/' .. railcarID)
+                    if fulfillmentPlan ~= nil and #fulfillmentPlan.FulfillmentPlanRoutes > 0 then
+                        table.sort(fulfillmentPlan.FulfillmentPlanRoutes, function (a, b)
+                            return a.SortOrder < b.SortOrder
+                        end)
+
+                        local firstRoute = fulfillmentPlan.FulfillmentPlanRoutes[1]
+                        if firstRoute.GovernmentIDTo ~= nil then
+                            releasebleInformation.To = firstRoute.GovernmentTo.Name
+                        elseif firstRoute.CompanyIDTo ~= nil then
+                            releasebleInformation.To = firstRoute.CompanyTo.Name
+                        end
+                        releasebleInformation.CompanyIDTo = firstRoute.CompanyIDTo
+                        releasebleInformation.GovernmentIDTo = firstRoute.GovernmentIDTo
                     end
                 end
+            else
+                local purchaseOrders = getFromMesa('PurchaseOrder/GetAllRelatedToLocation')
+                local suggestedPurchaseOrderLine = nil
+                if purchaseOrders ~= nil and #purchaseOrders > 0 then
+                    local i = 1
+                    while i <= #purchaseOrders do
+                        local purchaseOrder = purchaseOrders[i]
+                    
+                        if purchaseOrder.LocationIDDestination ~= locationID then
+                            table.remove(purchaseOrders, i)
+                        else
+                            i = i + 1
+                        end
+                    end
 
-                table.sort(purchaseOrders, function(a,b)
-                    return a.PurchaseOrderDate < b.PurchaseOrderDate
-                end)
+                    table.sort(purchaseOrders, function(a,b)
+                        return a.PurchaseOrderDate < b.PurchaseOrderDate
+                    end)
 
-                for _,purchaseOrder in ipairs(purchaseOrders) do
-                    for _,purchaseOrderLine in ipairs(purchaseOrder.PurchaseOrderLines) do
-                        table.insert(selectablePurchaseOrderLines, purchaseOrderLine)
+                    for _,purchaseOrder in ipairs(purchaseOrders) do
+                        for _,purchaseOrderLine in ipairs(purchaseOrder.PurchaseOrderLines) do
+                            table.insert(selectablePurchaseOrderLines, purchaseOrderLine)
 
+                            local incompleteFulfillmentQuantity = 0
+                            local fulfillmentQuantity = 0
+                            for _,fulfillment in ipairs(purchaseOrderLine.Fulfillments) do
+                                if not fulfillment.IsComplete then
+                                    incompleteFulfillmentQuantity = incompleteFulfillmentQuantity + fulfillment.Quantity
+                                end
+                                fulfillmentQuantity = fulfillmentQuantity + fulfillment.Quantity
+                            end
+
+                            local railcarLoadQuantity = 0
+                            for _,railcarLoad in ipairs(purchaseOrderLine.RailcarLoads) do
+                                railcarLoadQuantity = railcarLoadQuantity + railcarLoad.Quantity
+                            end
+
+                            local loadQuantityWithoutFulfillment = math.max(railcarLoadQuantity - incompleteFulfillmentQuantity, 0)
+
+                            local poLineHasFulfillmentPlanForRailcar = false
+                            for _,fulfillmentPlanPurchaseOrderLine in ipairs(purchaseOrderLine.FulfillmentPlanPurchaseOrderLines) do
+                                poLineHasFulfillmentPlanForRailcar = fulfillmentPlanPurchaseOrderLine.FulfillmentPlan.RailcarID == railcarID
+                                if poLineHasFulfillmentPlanForRailcar then break end
+                            end
+
+                            local unfulfilledQuantity = purchaseOrderLine.Quantity - fulfillmentQuantity
+                            if suggestedPurchaseOrderLine == nil and
+                                    unfulfilledQuantity - loadQuantityWithoutFulfillment > 0 and
+                                    poLineHasFulfillmentPlanForRailcar then
+                                suggestedPurchaseOrderLine = purchaseOrderLine
+                            end
+                        end
+                    end
+
+                    if suggestedPurchaseOrderLine ~= nil then
                         local incompleteFulfillmentQuantity = 0
                         local fulfillmentQuantity = 0
-                        for _,fulfillment in ipairs(purchaseOrderLine.Fulfillments) do
+                        for _,fulfillment in ipairs(suggestedPurchaseOrderLine.Fulfillments) do
                             if not fulfillment.IsComplete then
                                 incompleteFulfillmentQuantity = incompleteFulfillmentQuantity + fulfillment.Quantity
                             end
+
                             fulfillmentQuantity = fulfillmentQuantity + fulfillment.Quantity
                         end
 
                         local railcarLoadQuantity = 0
-                        for _,railcarLoad in ipairs(purchaseOrderLine.RailcarLoads) do
+                        for _,railcarLoad in ipairs(suggestedPurchaseOrderLine.RailcarLoads) do
                             railcarLoadQuantity = railcarLoadQuantity + railcarLoad.Quantity
                         end
 
-                        local loadQuantityWithoutFulfillment = math.max(railcarLoadQuantity - incompleteFulfillmentQuantity, 0)
+                        local alreadyFulfilledAmount = math.max(railcarLoadQuantity - incompleteFulfillmentQuantity, 0)
+                        
+                        selectedPurchaseOrderLine = suggestedPurchaseOrderLine
+                        selectedItem = suggestedPurchaseOrderLine.Item
 
-                        local poLineHasFulfillmentPlanForRailcar = false
-                        for _,fulfillmentPlanPurchaseOrderLine in ipairs(purchaseOrderLine.FulfillmentPlanPurchaseOrderLines) do
-                            poLineHasFulfillmentPlanForRailcar = fulfillmentPlanPurchaseOrderLine.FulfillmentPlan.RailcarID == railcarID
-                            if poLineHasFulfillmentPlanForRailcar then break end
+                        local unfulfilledQuantity = suggestedPurchaseOrderLine.Quantity - fulfillmentQuantity
+                        local suggestedQuantity = unfulfilledQuantity - alreadyFulfilledAmount
+                        if suggestedQuantity > railcar.RailcarModel.CargoCapacity - loadedQuantity then
+                            suggestedQuantity = railcar.RailcarModel.CargoCapacity - loadedQuantity
                         end
 
-                        local unfulfilledQuantity = purchaseOrderLine.Quantity - fulfillmentQuantity
-                        if suggestedPurchaseOrderLine == nil and
-                                unfulfilledQuantity - loadQuantityWithoutFulfillment > 0 and
-                                poLineHasFulfillmentPlanForRailcar then
-                            suggestedPurchaseOrderLine = purchaseOrderLine
-                        end
+                        suggestedQuantity = math.max(suggestedQuantity, 0)
+
+                        selectedQuantity = suggestedQuantity
                     end
-                end
-
-                if suggestedPurchaseOrderLine ~= nil then
-                    local incompleteFulfillmentQuantity = 0
-                    local fulfillmentQuantity = 0
-                    for _,fulfillment in ipairs(suggestedPurchaseOrderLine.Fulfillments) do
-                        if not fulfillment.IsComplete then
-                            incompleteFulfillmentQuantity = incompleteFulfillmentQuantity + fulfillment.Quantity
-                        end
-
-                        fulfillmentQuantity = fulfillmentQuantity + fulfillment.Quantity
-                    end
-
-                    local railcarLoadQuantity = 0
-                    for _,railcarLoad in ipairs(suggestedPurchaseOrderLine.RailcarLoads) do
-                        railcarLoadQuantity = railcarLoadQuantity + railcarLoad.Quantity
-                    end
-
-                    local alreadyFulfilledAmount = math.max(railcarLoadQuantity - incompleteFulfillmentQuantity, 0)
-                    
-                    selectedPurchaseOrderLine = suggestedPurchaseOrderLine
-                    selectedItem = suggestedPurchaseOrderLine.Item
-
-                    local unfulfilledQuantity = suggestedPurchaseOrderLine.Quantity - fulfillmentQuantity
-                    local suggestedQuantity = unfulfilledQuantity - alreadyFulfilledAmount
-                    if suggestedQuantity > railcar.RailcarModel.CargoCapacity - loadedQuantity then
-                        suggestedQuantity = railcar.RailcarModel.CargoCapacity - loadedQuantity
-                    end
-
-                    suggestedQuantity = math.max(suggestedQuantity, 0)
-
-                    selectedQuantity = suggestedQuantity
                 end
             end
         end
 
+        reloadData()
+
+        if railcar == nil then
+            goto continue
+        end
+        
         while true do
             term.clear()
             term.write(reportingMark)
@@ -415,7 +523,28 @@ local function performLoading()
             term.write('---------------')
             nl()
             if releasebleInformation.mustRelease then
-                
+                term.write('1 - Relase to ' .. releasebleInformation.To)
+                nl()
+                term.write('2 - Next Railcar')
+                nl()
+                term.write('3 - Exit')
+                nl()
+                nl()
+                term.write('Enter an option:')
+                local opt = tonumber(text.trim(term.read()))
+
+                if opt == 1 then -- Release
+                    if releaseRailcar(railcar, releasebleInformation) then
+                        selectedCars[reportingMark] = nil
+                        break
+                    end
+                elseif opt == 2 then -- Next railcar
+                    selectedCars[reportingMark] = nil
+                    break
+                elseif opt == 3 then -- Exit
+                    return
+                end
+
             else
                 term.write('LOAD DETAILS:')
                 nl()
@@ -450,7 +579,7 @@ local function performLoading()
                 nl()
                 term.write('4 - Add Load To Railcar')
                 nl()
-                term.write('5 - Finalize Loading')
+                term.write('6 - Finalize Loading')
                 nl()
                 term.write('6 - Next Railcar')
                 nl()
@@ -476,9 +605,12 @@ local function performLoading()
                         selectedQuantity = newQuantity
                     end
                 elseif optNum == 4 then -- Add Load To Railcar
-                    -- todo: add load
+                    if addLoadToRailcar(railcar.RailcarID, selectedPurchaseOrderLine, selectedItem, selectedQuantity) then
+                        reloadData()
+                    end
                 elseif optNum == 5 then -- Finalize Loading
-                    -- todo: finalize loading
+                    finalizeLoading(railcar)
+                    reloadData()
                 elseif optNum == 6 then -- Next Railcar
                     selectedCars[reportingMark] = nil
                     break
@@ -487,8 +619,6 @@ local function performLoading()
                 end
             end
         end
-
-
         ::continue::
     end
 
