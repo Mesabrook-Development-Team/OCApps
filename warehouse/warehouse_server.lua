@@ -1,5 +1,5 @@
 local component = require('component')
-local tunnel = require('tunnel')
+local tunnel = component.tunnel
 local event = require('event')
 local serialization = require('serialization')
 local database = require('warehouse/database')
@@ -52,40 +52,9 @@ local function getItems()
     return items
 end
 
-local function sendList(from, data)
+local function sendList(from)
     local items = getItems()
-
-    local response = {
-        items={},
-        hasMore=false
-    }
-
-    local skip = 0
-    if data.skip ~= nil and tonumber(data.skip) ~= nil then
-        skip = tonumber(data.skip)
-    end
-
-    if skip >= #items then
-        tunnel.send(from, serialization.serialize(response))
-        return
-    end
-
-    local take = 20
-    if data.take ~= nil and tonumber(data.take) ~= nil then
-        take = tonumber(data.take)
-    end
-
-    if take > #items - skip then
-        take = #items - skip
-    else
-        response.hasMore = true
-    end
-
-    for i=1+skip,take+skip do
-        table.insert(response.items, items[i])
-    end
-
-    tunnel.send(from, serialization.serialize(response))
+    tunnel.send(from, serialization.serialize(items))
 end
 
 local function order(data)
@@ -121,6 +90,9 @@ local function order(data)
         for _,item in ipairs(items) do
             if item.name == data.name then
                 haveItemOnHand = true
+                if item.size < data.amount then
+                    data.amount = item.size
+                end
                 break
             end
         end
@@ -205,13 +177,18 @@ local function sendBackorder(from, data)
     tunnel.send(from, serialization.serialize({success=true, data=backorder}))
 end
 
-local function handleMessage(from, message, data)
+local function handleMessage(from, message, data, inactivityTimerIDObj)
+    event.cancel(inactivityTimerIDObj.inactivityTimerID)
+    inactivityTimerIDObj.inactivityTimerID = event.timer(600, function()
+        component.computer.stop()
+    end)
+
     if message == 'bye' then
         return false
     elseif message == 'wake' then
         notifyWoken(from)
     elseif message == 'list' then
-        sendList(from, data)
+        sendList(from)
     elseif message == 'vieworder' then
         sendOrder(from, data)
     elseif message == 'order' then
@@ -227,13 +204,19 @@ local function handleMessage(from, message, data)
     return true
 end
 
+local inactivityTimerIDObj = {}
+
+inactivityTimerIDObj.inactivityTimerID = event.timer(600, function()
+    component.computer.stop()
+end)
+
 notifyWoken()
 
 while true do
     local _, _, from, _, _, message, data = event.pull('modem_message')
-    if not handleMessage(from, message, data) then
+    if not handleMessage(from, message, data, inactivityTimerIDObj) then
         return
     end
 end
 
-component.computer.shutdown()
+component.computer.stop()
