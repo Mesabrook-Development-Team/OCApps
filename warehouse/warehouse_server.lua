@@ -34,15 +34,18 @@ local function getItems()
         end
 
         for _,position in ipairs(positions) do
-            for _,item in ipairs(xnet.getItems(position)) do
-                if item.name ~= 'minecraft:air' then
-                    local alreadyOrderedAmount = orderedItems[item.name]
-                    if alreadyOrderedAmount == nil then
-                        alreadyOrderedAmount = 0
-                    end
+            local items = xnet.getItems(position)
+            if items ~= nil then
+                for _,item in ipairs(xnet.getItems(position)) do
+                    if item.name ~= 'minecraft:air' then
+                        local alreadyOrderedAmount = orderedItems[item.name]
+                        if alreadyOrderedAmount == nil then
+                            alreadyOrderedAmount = 0
+                        end
 
-                    if alreadyOrderedAmount < item.size then
-                        table.insert(items, {size=item.size - alreadyOrderedAmount, name=item.name, label=item.label})
+                        if alreadyOrderedAmount < item.size then
+                            table.insert(items, {size=item.size - alreadyOrderedAmount, name=item.name, label=item.label})
+                        end
                     end
                 end
             end
