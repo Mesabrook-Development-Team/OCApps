@@ -165,10 +165,22 @@ local function orderFromWarehouse(storeName)
             nl()
         end
 
-        term.write('Type command (modify, back):')
+        term.write('Type command (modify, delete, back):')
         local command = text.trim(term.read())
         if command == 'modify' then
             performOrdering(storeName)
+        elseif command == 'delete' then
+            tunnel.send('deleteorder', serialization.serialize({storeName = storeName}))
+            local response = getResponse()
+            if response ~= nil then
+                local dataTable = serialization.unserialize(response)
+                if not dataTable.success then
+                    term.write('Failed to delete order: ' .. dataTable.errorMessage)
+                    nl()
+                    term.write('Press enter to continue...')
+                    term.read()
+                end
+            end
         elseif command == 'back' then
             return
         end

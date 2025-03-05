@@ -142,6 +142,20 @@ local function sendOrder(from, data)
     tunnel.send(from, serialization.serialize({success=true, data=order}))
 end
 
+local function deleteOrder(data)
+    if data == nil then
+        return false, 'Unexpected data format'
+    end
+
+    if data.storeName == nil then
+        return false, 'Store name required'
+    end
+
+    database.deleteOrder(data.storeName)
+
+    return true
+end
+
 local function backorder(data)
     if data == nil then
         return false, 'Unexpected data format'
@@ -202,6 +216,20 @@ local function sendBackorder(from, data)
     tunnel.send(from, serialization.serialize({success=true, data=backorder}))
 end
 
+local function deleteBackorder(data)
+    if data == nil then
+        return false, 'Unexpected data format'
+    end
+
+    if data.storeName == nil then
+        return false, 'Store name required'
+    end
+
+    database.deleteBackorder(data.storeName)
+
+    return true
+end
+
 local function handleMessage(from, message, data, inactivityTimerIDObj)
     event.cancel(inactivityTimerIDObj.inactivityTimerID)
     inactivityTimerIDObj.inactivityTimerID = event.timer(600, function()
@@ -225,10 +253,16 @@ local function handleMessage(from, message, data, inactivityTimerIDObj)
     elseif message == 'order' then
         local success, errorMessage = order(data)
         tunnel.send(from, serialization.serialize({success=success, errorMessage=errorMessage}))
+    elseif message == 'deleteorder' then
+        local success, errorMessage = deleteOrder(data)
+        tunnel.send(from, serialization.serialize({success=success, errorMessage=errorMessage}))
     elseif message == 'viewbackorder' then
         sendBackorder(from, data)
     elseif message == 'backorder' then
         local success, errorMessage = backorder(data)
+        tunnel.send(from, serialization.serialize({success=success, errorMessage=errorMessage}))
+    elseif message == 'deletebackorder' then
+        local success, errorMessage = deleteBackorder(data)
         tunnel.send(from, serialization.serialize({success=success, errorMessage=errorMessage}))
     end
 
