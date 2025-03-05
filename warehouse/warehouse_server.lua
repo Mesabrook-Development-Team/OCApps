@@ -239,7 +239,7 @@ notifyWoken()
 while true do
     local _, _, from, _, _, message, data = event.pull('modem_message')
     if not handleMessage(from, message, data, inactivityTimerIDObj) then
-        return
+        break
     end
 end
 

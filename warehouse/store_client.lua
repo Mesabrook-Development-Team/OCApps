@@ -60,6 +60,8 @@ local function performOrdering(storeName)
             items = serialization.unserialize(response)
         end
 
+        term.clear()
+
         local suggestions = {}
         if #items > 0 then
             local _,height = term.getViewport()
@@ -144,6 +146,7 @@ local function orderFromWarehouse(storeName)
         term.clear()
         if retrieveFailMessage ~= nil then
             term.write('Failed to get order: ' .. retrieveFailMessage)
+            nl()
         end
 
         if #order > 0 then
@@ -279,7 +282,7 @@ local function systemMenu()
         term.clear()
         term.write('Getting data from server...')
         local hasOrders = false
-        tunnel.send('vieworder', {storeName = storeName})
+        tunnel.send('vieworder', serialization.serialize({storeName = storeName}))
         local response = getResponse()
         if response ~= nil then
             local dataTable = serialization.unserialize(response)
@@ -289,7 +292,7 @@ local function systemMenu()
         end
 
         local hasBackorders = false
-        tunnel.send('viewbackorder', {storeName = storeName})
+        tunnel.send('viewbackorder', serialization.serialize({storeName = storeName}))
         response = getResponse()
         if response ~= nil then
             local dataTable = serialization.unserialize(response)
@@ -300,7 +303,10 @@ local function systemMenu()
 
         term.clear()
         term.write('= WAREHOUSE REQUEST =')
+        nl()
+        nl()
         term.write(storeName)
+        nl()
         nl()
         term.write('NOTE: Server shutsdown after 10 minutes of inactivity')
         nl()
@@ -340,8 +346,8 @@ local function systemMenu()
     end
 end
 
-term.clear()
 while true do
+    term.clear()
     term.write('= WAREHOUSE REQUEST =')
     nl()
     nl()
