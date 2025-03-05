@@ -58,6 +58,10 @@ local function sendList(from)
 end
 
 local function order(data)
+    if data == nil then
+        return false, 'Unexpected data format'
+    end
+
     if data.storeName == nil then
         return false, 'Store name required'
     end
@@ -113,6 +117,11 @@ local function order(data)
 end
 
 local function sendOrder(from, data)
+    if data == nil then
+        tunnel.send(from, serialization.serialize({success=false, data='Unexpected data format'}))
+        return
+    end
+
     if data.storeName == nil then
         tunnel.send(from, serialization.serialize({success=false, data='Store name required'}))
         return
@@ -127,6 +136,10 @@ local function sendOrder(from, data)
 end
 
 local function backorder(data)
+    if data == nil then
+        return false, 'Unexpected data format'
+    end
+
     if data.storeName == nil then
         return false, 'Store name required'
     end
@@ -164,6 +177,11 @@ local function backorder(data)
 end
 
 local function sendBackorder(from, data)
+    if data == nil then
+        tunnel.send(from, serialization.serialize({success=false, data='Unexpected data format'}))
+        return
+    end
+
     if data.storeName == nil then
         tunnel.send(from, serialization.serialize({success=false, data='Store name required'}))
         return
@@ -182,6 +200,12 @@ local function handleMessage(from, message, data, inactivityTimerIDObj)
     inactivityTimerIDObj.inactivityTimerID = event.timer(600, function()
         component.computer.stop()
     end)
+
+    if data == nil then
+        data = ''
+    end
+
+    data = serialization.unserialize(tostring(data))
 
     if message == 'bye' then
         return false

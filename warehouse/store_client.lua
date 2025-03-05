@@ -1,5 +1,5 @@
 local component = require('component')
-local tunnel = require('tunnel')
+local tunnel = component.tunnel
 local event = require('event')
 local serialization = require('serialization')
 local filesystem = require('filesystem')
@@ -105,7 +105,7 @@ local function performOrdering(storeName)
                 term.write('Enter quantity (max ' .. selectedItem.size .. ', blank to cancel):')
                 local quantity = tonumber(text.trim(term.read()))
                 if quantity ~= nil then
-                    tunnel.send('order', {storeName = storeName, name=selectedItem.name, amount=quantity})
+                    tunnel.send('order', serialization.serialize({storeName = storeName, name=selectedItem.name, amount=quantity}))
                     local response = getResponse()
                     if response ~= nil then
                         local dataTable = serialization.unserialize(response)
@@ -127,7 +127,7 @@ local function orderFromWarehouse(storeName)
     while true do
         term.clear()
         term.write('Getting order data from server...')
-        tunnel.send('vieworder', storeName)
+        tunnel.send('vieworder', serialization.serialize({storeName = storeName}))
         local response = getResponse()
 
         local order = {}
@@ -177,7 +177,7 @@ local function backorderFromWarehouse(storeName)
     while true do
         term.clear()
         term.write('Getting backorder data from server...')
-        tunnel.send('viewbackorder', storeName)
+        tunnel.send('viewbackorder', serialization.serialize({storeName = storeName}))
         local response = getResponse()
 
         local backorder = {}
@@ -221,7 +221,7 @@ local function backorderFromWarehouse(storeName)
         term.write('Enter quantity, or blank to cancel:')
         local quantity = tonumber(text.trim(term.read()))
         if quantity ~= nil then
-            tunnel.send('backorder', {storeName = storeName, label=command, amount=quantity})
+            tunnel.send('backorder', serialization.serialize({storeName = storeName, label=command, amount=quantity}))
             local response = getResponse()
             if response ~= nil then
                 local dataTable = serialization.unserialize(response)
@@ -269,6 +269,7 @@ local function systemMenu()
         end
     end
 
+    filesystem.makeDirectory('/etc/warehouse')
     local file = io.open('/etc/warehouse/storename', 'w')
     file:write(storeName)
     file:close()
@@ -277,9 +278,8 @@ local function systemMenu()
     while true do
         term.clear()
         term.write('Getting data from server...')
-        term.clear()
         local hasOrders = false
-        tunnel.send('vieworder')
+        tunnel.send('vieworder', {storeName = storeName})
         local response = getResponse()
         if response ~= nil then
             local dataTable = serialization.unserialize(response)
@@ -289,7 +289,7 @@ local function systemMenu()
         end
 
         local hasBackorders = false
-        tunnel.send('viewbackorder')
+        tunnel.send('viewbackorder', {storeName = storeName})
         response = getResponse()
         if response ~= nil then
             local dataTable = serialization.unserialize(response)
