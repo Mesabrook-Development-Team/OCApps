@@ -216,7 +216,21 @@ local function analyzeReceiving()
                                     if existingOrderItem ~= nil then
                                         existingOrderItem.amount = existingOrderItem.amount + amountToOrder
                                     end
+                                else
+                                    term.write('Failed to order ' .. item.name .. ' for ' .. storeName)
+                                    nl()
+                                    term.write(dataTable.errorMessage)
+                                    nl()
+                                    nl()
+                                    term.write('Press any key to continue...')
+                                    event.pull('key_down')
                                 end
+                            else
+                                term.write('nil response from server during order')
+                                nl()
+                                nl()
+                                term.write('Press any key to continue...')
+                                event.pull('key_down')
                             end
 
                             if receivedSize <= 0 then
