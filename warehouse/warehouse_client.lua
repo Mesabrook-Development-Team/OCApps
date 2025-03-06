@@ -64,7 +64,13 @@ local function analyzeReceiving()
         backorders = serialization.unserialize(response)
     end
 
-    if #backorders == 0 then
+    local hasBackorders = false
+    for _,_ in pairs(backorders) do
+        hasBackorders = true
+        break
+    end
+
+    if not hasBackorders then
         term.write('No backorders, no need to analyze')
         nl()
         return
@@ -397,14 +403,16 @@ local function viewBackorders()
     while true do
         term.clear()
 
-        if #itemAmounts <= 0 then
+        local hasItems = false
+        for item,amount in pairs(itemAmounts) do
+            hasItems = true
+            term.write(item .. 'x ' .. amount)
+            nl()
+        end
+
+        if not hasItems then
             term.write('* No Backorders *')
             nl()
-        else
-            for item,amount in pairs(itemAmounts) do
-                term.write(item .. 'x ' .. amount)
-                nl()
-            end
         end
 
         term.write('Enter command (compare, save, back):')
