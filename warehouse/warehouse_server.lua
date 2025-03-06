@@ -264,6 +264,10 @@ local function handleMessage(from, message, data, inactivityTimerIDObj)
     elseif message == 'deletebackorder' then
         local success, errorMessage = deleteBackorder(data)
         tunnel.send(from, serialization.serialize({success=success, errorMessage=errorMessage}))
+    elseif message == 'allbackorders' then
+        tunnel.send(from, serialization.serialize(database.readAllBackorders()))
+    elseif message == 'allorders' then
+        tunnel.send(from, serialization.serialize(database.readAllOrders()))
     end
 
     return true

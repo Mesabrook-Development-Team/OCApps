@@ -79,7 +79,7 @@ local function performOrdering(storeName)
             end
 
             for _,item in ipairs(items) do
-                table.insert(suggestions, item.name)
+                table.insert(suggestions, item.label)
             end
         else
             term.write('* No Items *')
