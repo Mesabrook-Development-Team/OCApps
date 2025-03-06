@@ -429,9 +429,7 @@ local function pickList()
         nl()
         term.write('2 - Complete pick list')
         nl()
-        term.write('3 - View backorders')
-        nl()
-        term.write('4 - Return to main menu')
+        term.write('3 - Return to main menu')
         nl()
         term.write('Enter an option:')
         local opt = tonumber(text.trim(term.read()))
@@ -439,9 +437,7 @@ local function pickList()
             printPickList()
         elseif opt == 2 then -- Complete pick list
             completePickList()
-        elseif opt == 3 then -- View backorders
-            viewBackorders()
-        elseif opt == 4 then -- Return to main menu
+        elseif opt == 3 then -- Return to main menu
             return
         end
     end
@@ -460,7 +456,9 @@ local function systemMenu()
         nl()
         term.write('2 - Pick List')
         nl()
-        term.write('3 - Disconnect from server')
+        term.write('3 - View backorders')
+        nl()
+        term.write('4 - Disconnect from server')
         nl()
         nl()
         term.write('Enter an option:')
@@ -469,7 +467,9 @@ local function systemMenu()
             analyzeReceiving()
         elseif opt == 2 then -- Pick List
             pickList()
-        elseif opt == 3 then -- Disconnect from server
+        elseif opt == 3 then -- View backorders
+            viewBackorders()
+        elseif opt == 4 then -- Disconnect from server
             tunnel.send('bye')
             return
         end
