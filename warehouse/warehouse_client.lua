@@ -161,9 +161,13 @@ local function analyzeReceiving()
                     term.write('Enter proper item name, prev, next, or blank if no match:')
                     local command = text.trim(term.read({hint=itemList}))
                     if command == 'prev' and page > 0 then
-                        page = page - 1
-                    elseif command == 'next' and (page + 1) * height <= #itemList then
-                        page = page + 1
+                        if page > 0 then
+                            page = page - 1
+                        end
+                    elseif command == 'next' then
+                        if (page + 1) * height <= #itemList then
+                            page = page + 1
+                        end
                     elseif command == '' or command == nil then
                         backorderItemKnownAs = nil
                         break
