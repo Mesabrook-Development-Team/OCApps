@@ -108,7 +108,7 @@ local function order(data)
             end
         end
 
-        if not haveItemOnHand then
+        if not haveItemOnHand and (data.ignoreItemOnHand == nil or tostring(data.ignoreItemOnHand) ~= 'true') then
             return false, 'Item not found on hand'
         end
 

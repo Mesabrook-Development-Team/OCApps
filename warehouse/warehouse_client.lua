@@ -200,7 +200,7 @@ local function analyzeReceiving()
                                 end
                             end
 
-                            tunnel.send('order', serialization.serialize({storeName=storeName, name=item.name, amount=amountToOrder}))
+                            tunnel.send('order', serialization.serialize({storeName=storeName, name=item.name, amount=amountToOrder, ignoreItemOnHand=true}))
                             response = getResponse()
                             if response ~= nil then
                                 local dataTable = serialization.unserialize(response)
