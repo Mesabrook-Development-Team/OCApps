@@ -210,7 +210,7 @@ local function analyzeReceiving()
                                 local dataTable = serialization.unserialize(response)
                                 if dataTable.success then
                                     receivedSize = receivedSize - amountToOrder
-                                    tunnel.send('backorder', serialization.serialize({storeName=storeName, label=item.label, amount=backorderItem.amount - amountToOrder}))
+                                    tunnel.send('backorder', serialization.serialize({storeName=storeName, label=backorderItemKnownAs, amount=backorderItem.amount - amountToOrder}))
                                     getResponse()
                                     backorderItem.amount = backorderItem.amount - amountToOrder
                                     if backorderItem.amount <= 0 then
@@ -424,7 +424,7 @@ local function viewBackorders()
         local hasItems = false
         for item,amount in pairs(itemAmounts) do
             hasItems = true
-            term.write(item .. 'x ' .. amount)
+            term.write(amount .. 'x ' .. item)
             nl()
         end
 
