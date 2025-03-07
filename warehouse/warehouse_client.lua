@@ -197,7 +197,7 @@ local function analyzeReceiving()
                             local amountToOrder = additionalAmountToOrder
                             if existingOrder ~= nil then
                                 for _,orderItem in ipairs(existingOrder) do
-                                    if orderItem.name == item.name then
+                                    if orderItem.name == item.name .. ':' .. item.damage then
                                         amountToOrder = orderItem.amount + additionalAmountToOrder
                                         existingOrderItem = orderItem
                                         break
@@ -205,7 +205,7 @@ local function analyzeReceiving()
                                 end
                             end
 
-                            tunnel.send('order', serialization.serialize({storeName=storeName, name=item.name, amount=amountToOrder, ignoreItemOnHand=true}))
+                            tunnel.send('order', serialization.serialize({storeName=storeName, name=item.name .. ':' .. item.damage, amount=amountToOrder, ignoreItemOnHand=true}))
                             response = getResponse()
                             if response ~= nil then
                                 local dataTable = serialization.unserialize(response)
@@ -222,7 +222,7 @@ local function analyzeReceiving()
                                         existingOrderItem.amount = amountToOrder
                                     end
                                 else
-                                    term.write('Failed to order ' .. item.name .. ' for ' .. storeName)
+                                    term.write('Failed to order ' .. item.name .. ':' .. item.damage .. ' for ' .. storeName)
                                     nl()
                                     term.write(dataTable.errorMessage)
                                     nl()
@@ -331,6 +331,7 @@ local function completePickList()
 
     for item,storeDatum in pairs(picklistData) do
         for _,storeData in ipairs(storeDatum) do
+            term.clear()
             term.write('Item: ' .. item)
             nl()
             term.write('Store: ' .. storeData.storeName)

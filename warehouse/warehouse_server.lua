@@ -38,13 +38,13 @@ local function getItems()
             if itemsAtPosition ~= nil then
                 for _,item in ipairs(itemsAtPosition) do
                     if item.name ~= 'minecraft:air' then
-                        local alreadyOrderedAmount = orderedItems[item.name]
+                        local alreadyOrderedAmount = orderedItems[item.name .. ':' .. item.damage]
                         if alreadyOrderedAmount == nil then
                             alreadyOrderedAmount = 0
                         end
 
                         if alreadyOrderedAmount < item.size then
-                            table.insert(items, {size=item.size - alreadyOrderedAmount, name=item.name, label=item.label})
+                            table.insert(items, {size=item.size - alreadyOrderedAmount, name=item.name .. ':' .. item.damage, label=item.label})
                         end
                     end
                 end
