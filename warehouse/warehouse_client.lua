@@ -174,6 +174,10 @@ local function analyzeReceiving()
                                 break
                             end
                         end
+
+                        if backorderItemKnownAs ~= nil then
+                            break
+                        end
                     end
                 end
             end
