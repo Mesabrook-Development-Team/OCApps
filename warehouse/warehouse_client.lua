@@ -187,17 +187,18 @@ local function analyzeReceiving()
                 for storeName,backorderList in pairs(backorders) do
                     for backOrderItemIndex,backorderItem in ipairs(backorderList) do
                         if backorderItem.label == backorderItemKnownAs then
-                            local amountToOrder = backorderItem.amount
-                            if amountToOrder > receivedSize then
-                                amountToOrder = receivedSize
+                            local additionalAmountToOrder = backorderItem.amount
+                            if additionalAmountToOrder > receivedSize then
+                                additionalAmountToOrder = receivedSize
                             end
 
                             local existingOrder = orders[storeName]
                             local existingOrderItem = nil
+                            local amountToOrder = additionalAmountToOrder
                             if existingOrder ~= nil then
                                 for _,orderItem in ipairs(existingOrder) do
                                     if orderItem.name == item.name then
-                                        amountToOrder = orderItem.amount + amountToOrder
+                                        amountToOrder = orderItem.amount + additionalAmountToOrder
                                         existingOrderItem = orderItem
                                         break
                                     end
@@ -209,16 +210,16 @@ local function analyzeReceiving()
                             if response ~= nil then
                                 local dataTable = serialization.unserialize(response)
                                 if dataTable.success then
-                                    receivedSize = receivedSize - amountToOrder
-                                    tunnel.send('backorder', serialization.serialize({storeName=storeName, label=backorderItemKnownAs, amount=backorderItem.amount - amountToOrder}))
+                                    receivedSize = receivedSize - additionalAmountToOrder
+                                    tunnel.send('backorder', serialization.serialize({storeName=storeName, label=backorderItemKnownAs, amount=backorderItem.amount - additionalAmountToOrder}))
                                     getResponse()
-                                    backorderItem.amount = backorderItem.amount - amountToOrder
+                                    backorderItem.amount = backorderItem.amount - additionalAmountToOrder
                                     if backorderItem.amount <= 0 then
                                         table.remove(backorderList, backOrderItemIndex)
                                     end
 
                                     if existingOrderItem ~= nil then
-                                        existingOrderItem.amount = existingOrderItem.amount + amountToOrder
+                                        existingOrderItem.amount = amountToOrder
                                     end
                                 else
                                     term.write('Failed to order ' .. item.name .. ' for ' .. storeName)
