@@ -4,6 +4,8 @@ local mesaApi = require('mesasuite_api')
 local json = require('json')
 local text = require('text')
 local colors = require('colors')
+local modem = require('component').modem
+local event = require('event')
 
 local companyID = nil
 local locationID = nil
@@ -26,6 +28,142 @@ local function nl()
 end
 
 local selectedCars = {} -- Key: Reporting Mark, Value: Railcar ID
+
+-- Process from AEI
+local function processFromAEI()
+    if modem == nil then
+        print('No modem found')
+        print()
+        term.write('Press any key to continue')
+        term.pull('key_down')
+        return
+    end
+
+    term.clear()
+    print('Looking up sensor server...')
+
+    local file = io.open('/etc/sar/aei.cfg', 'r')
+    local config = serialization.unserialize(file:read('*a'))
+    file:close()
+
+    if config == nil or config.address == nil or config.address == '' or config.port == nil or tonumber(config.port) == nil then
+        print('Sensor server configuration not found or corrupted')
+        print()
+        local opt = nil
+
+        repeat
+            term.clearLine()
+            term.write('Do you want to configure now? (y/n)')
+            local opt = text.trim(term.read())
+            if opt == 'y' then
+                break
+            elseif opt == 'n' then 
+                return
+            end
+        until false
+
+        term.clear()
+        local address = nil
+        repeat
+            term.write('Enter sensor server address:')
+            address = text.trim(term.read())
+        until address ~= nil and address ~= ''
+
+        local port = nil
+        repeat
+            term.write('Enter sensor server port:')
+            port = text.trim(term.read())
+        until port ~= nil and tonumber(port) ~= nil
+
+        config = {address=address, port=port}
+        file = io.open('/etc/sar/aei.cfg', 'w')
+        file:write(serialization.serialize(config))
+        file:close()
+    end
+
+    term.clear()
+    print('Opening port...')
+    if not modem.open(config.port) then
+        print('Could not open port ' .. config.port)
+        print()
+        term.write('Press any key to return')
+        term.pull('key_down')
+        return
+    end
+
+    print('Waking sensor server...')
+    modem.send(config.address, config.port, 'wake')
+    local _, _, from = event.pull(15, 'modem_message')
+
+    if from == nil then
+        modem.close(config.port)
+
+        print('Sensor server did not respond in time')
+        print()
+        term.write('Press any key to return')
+        term.pull('key_down')
+        return
+    end
+
+    print('Getting data from server...')
+    modem.send(config.address, config.port, 'list')
+    local _, _, from, port, _, data = event.pull('modem_message')
+    if from == nil then
+        modem.close(config.port)
+        print('Sensor server did not respond in time')
+        print()
+        term.write('Press any key to return')
+        term.pull('key_down')
+        return
+    end
+
+    print('Shutting server down...')
+    modem.send(config.address, config.port, 'bye')
+    modem.close(config.port)
+
+    print('Processing data...')
+    local aeiData = serialization.unserialize(data)
+    local times = {}
+    for k in pairs(aeiData) do
+        table.insert(times, k)
+    end
+
+    table.sort(times)
+
+    term.clear()
+    local selectedTime = nil
+    while true do
+        print('Select a car set by scan time:')
+        for i,time in ipairs(times) do
+            local timeAgo = os.time() - time
+            print(i .. ': ' .. timeAgo .. ' seconds ago (' .. #aeiData[time] .. ' cars)')
+        end
+        print()
+
+        term.write('Enter an option, or blank to cancel:')
+        local opt = text.trim(term.read())
+        if opt == nil or opt == '' then
+            return
+        elseif tonumber(opt) ~= nil and tonumber(opt) <= #times then
+            selectedTime = times[tonumber(opt)]
+            break
+        end
+    end
+
+    term.clear()
+    print('Looking up selected cars...')
+    selectedCars = {}
+    for _,railcar in ipairs(aeiData[selectedTime]) do
+        print('Looking up ' .. railcar '...')
+        local success, jsonStr = mesaApi.request('company', 'Railcar/GetByReportingMark/' .. railcar, nil, {CompanyID=companyID, LocationID=locationID})
+        if success and jsonStr ~= 'null' then
+            local foundRailcar = json.parse(jsonStr)
+            if foundRailcar ~= nil and foundRailcar.RailcarID ~= nil then
+                selectedCars[railcar] = foundRailcar.RailcarID
+            end
+        end
+    end
+end
 
 -- Process from MesaSuite
 local function processFromMesaSuite()
@@ -318,7 +456,7 @@ local function releaseRailcar(railcar, releaseableInformation)
     }
 
     local success = mesaApi.request('company', 'Railcar/Release', json.serialize(releaseInfo), {CompanyID=companyID, LocationID=locationID}, 'POST')
-    if success == false or jsonStr == 'null' then
+    if success == false then
         term.write('Failed to release railcar')
         nl()
         term.write('Press enter to continue')
@@ -621,7 +759,6 @@ local function performLoading()
         end
         ::continue::
     end
-
 end
 
 -- Menu
@@ -666,7 +803,7 @@ module.menu = function()
         local optNum = tonumber(opt)
 
         if optNum == 1 then -- Select from sensors
-            -- Process cars from sensors
+            processFromAEI()
         elseif optNum == 2 then -- Select from MesaSuite
             processFromMesaSuite()
         elseif optNum == 3 then -- Manual Entry
