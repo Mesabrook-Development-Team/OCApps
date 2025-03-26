@@ -6,6 +6,7 @@ local text = require('text')
 local colors = require('colors')
 local modem = require('component').modem
 local event = require('event')
+local filesystem = require('filesystem')
 
 local companyID = nil
 local locationID = nil
@@ -42,9 +43,13 @@ local function processFromAEI()
     term.clear()
     print('Looking up sensor server...')
 
-    local file = io.open('/etc/sar/aei.cfg', 'r')
-    local config = serialization.unserialize(file:read('*a'))
-    file:close()
+    local config = {}
+
+    if filesystem.exists('/etc/sar/aei.cfg') then
+        local file = io.open('/etc/sar/aei.cfg', 'r')
+        config = serialization.unserialize(file:read('*a'))
+        file:close()
+    end
 
     if config == nil or config.address == nil or config.address == '' or config.port == nil or tonumber(config.port) == nil then
         print('Sensor server configuration not found or corrupted')

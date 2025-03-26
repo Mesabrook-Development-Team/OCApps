@@ -34,6 +34,14 @@ for k,v in pairs(readConfig) do
 end
 
 -- Database functions
+local data = {}
+
+if not filesystem.exists('/etc/aei/data') then
+    local file = io.open('/etc/aei/data', 'w')
+    file:write(serialization.serialize(data))
+    file:close()
+end
+
 file = io.open('/etc/aei/data', 'r')
 local data = serialization.unserialize(file:read('*a'))
 file:close()

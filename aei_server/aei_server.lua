@@ -14,14 +14,20 @@ local config = {
     port=1923
 }
 
-local file = io.open('/etc/aei_server/config.cfg', 'r')
-local configData = serialization.unserialize(file:read('*a'))
-file:close()
+local configData = {}
 
-if configData ~= nil then
-    file = io.open('/etc/aei_server/config.cfg', 'w')
+if not filesystem.exists('/etc/aei_server/config.cfg') then
+    local file = io.open('/etc/aei_server/config.cfg', 'w')
     file:write(serialization.serialize(config))
     file:close()
+end
+
+local file = io.open('/etc/aei_server/config.cfg', 'r')
+configData = serialization.unserialize(file:read('*a'))
+file:close()
+
+if configData == nil then
+    configData = {}
 end
 
 for k,v in pairs(configData) do
