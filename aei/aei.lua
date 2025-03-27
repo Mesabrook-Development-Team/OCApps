@@ -80,7 +80,7 @@ local function getCurrentEntryKey()
         data[existingTimes[1]] = nil
     end
 
-    table[workingOSTime] = {}
+    data[workingOSTime] = {}
     saveDatabase()
 
     return workingOSTime

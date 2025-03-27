@@ -112,6 +112,13 @@ local function processFromAEI()
         return
     end
 
+    term.clear()
+    print('AEI Sensor Server is running')
+    print()
+    print('When car sensing is complete, press any key to select data')
+    term.pull('key_down')
+    term.clear()
+
     print('Getting data from server...')
     modem.send(config.address, config.port, 'list')
     local _, _, from, port, _, data = event.pull('modem_message')
@@ -142,7 +149,7 @@ local function processFromAEI()
     while true do
         print('Select a car set by scan time:')
         for i,time in ipairs(times) do
-            local timeAgo = os.time() - time
+            local timeAgo = (os.time() - time) * 1000 / 60 / 60 / 20
             print(i .. ': ' .. timeAgo .. ' seconds ago (' .. #aeiData[time] .. ' cars)')
         end
         print()
@@ -161,7 +168,7 @@ local function processFromAEI()
     print('Looking up selected cars...')
     selectedCars = {}
     for _,railcar in ipairs(aeiData[selectedTime]) do
-        print('Looking up ' .. railcar '...')
+        print('Looking up ' .. railcar .. '...')
         local success, jsonStr = mesaApi.request('company', 'Railcar/GetByReportingMark/' .. railcar, nil, {CompanyID=companyID, LocationID=locationID})
         if success and jsonStr ~= 'null' then
             local foundRailcar = json.parse(jsonStr)
@@ -795,7 +802,7 @@ module.menu = function()
         end
         term.write('---------------')
         nl()
-        term.write('1 - Select from Sensor(s)')
+        term.write('1 - Start AEI Sensor Server')
         nl()
         term.write('2 - Select from MesaSuite')
         nl()
