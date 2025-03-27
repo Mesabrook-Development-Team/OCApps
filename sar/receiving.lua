@@ -101,7 +101,7 @@ module.menu = function()
            term.write(' (Printer Unavailable)')
         end
         nl()
-        term.write('2 - Process Cars From Sensor(s)')
+        term.write('2 - Start AEI Sensor Server')
         nl()
         term.write('3 - Process Cars on Track')
         nl()

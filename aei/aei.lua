@@ -87,6 +87,9 @@ local function getCurrentEntryKey()
 end
 
 local function onStockOverhead()
+    event.cancel(timeoutTimerId)
+    timeoutTimerId = event.timer(config.timeout, tagReadingTimeout, math.huge)
+
     local tag = detector.getTag()
     if tag == nil or tag == '' then
         return
@@ -98,9 +101,9 @@ local function onStockOverhead()
 end
 
 module.start = function()
-    event.listen('ir_train_overhead', onStockOverhead)
-
     timeoutTimerId = event.timer(config.timeout, tagReadingTimeout, math.huge)
+    
+    event.listen('ir_train_overhead', onStockOverhead)
 end
 
 module.stop = function()
