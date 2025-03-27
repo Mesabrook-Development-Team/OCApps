@@ -2,12 +2,12 @@ local component = require('component')
 local event = require('event')
 local serialization = require('serialization')
 local filesystem = require('filesystem')
-local detector = component.ir_augment_detector
 
 if not component.isAvailable('ir_augment_detector') then
     return nil, 'IR Augment Detector is not present'
 end
 
+local detector = component.ir_augment_detector
 local module = {}
 
 filesystem.makeDirectory('/etc/aei')
@@ -43,7 +43,7 @@ if not filesystem.exists('/etc/aei/data') then
 end
 
 file = io.open('/etc/aei/data', 'r')
-local data = serialization.unserialize(file:read('*a'))
+data = serialization.unserialize(file:read('*a'))
 file:close()
 
 if data == nil then
@@ -82,6 +82,8 @@ local function getCurrentEntryKey()
 
     table[workingOSTime] = {}
     saveDatabase()
+
+    return workingOSTime
 end
 
 local function onStockOverhead()
@@ -90,15 +92,15 @@ local function onStockOverhead()
         return
     end
 
-    local workingOSTime = getCurrentEntryKey()
-    table.insert(data[workingOSTime], tag)
+    local osTime = getCurrentEntryKey()
+    table.insert(data[osTime], tag)
     saveDatabase()
 end
 
 module.start = function()
     event.listen('ir_train_overhead', onStockOverhead)
 
-    timeoutTimerId = event.timer(config.timeout, tagReadingTimeout)
+    timeoutTimerId = event.timer(config.timeout, tagReadingTimeout, math.huge)
 end
 
 module.stop = function()

@@ -80,8 +80,10 @@ local function processFromAEI()
             port = text.trim(term.read())
         until port ~= nil and tonumber(port) ~= nil
 
+        port = tonumber(port)
         config = {address=address, port=port}
-        file = io.open('/etc/sar/aei.cfg', 'w')
+
+        local file = io.open('/etc/sar/aei.cfg', 'w')
         file:write(serialization.serialize(config))
         file:close()
     end
