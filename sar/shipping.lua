@@ -308,7 +308,7 @@ local function addLoadToRailcar(railcarID, purchaseOrderLine, item, quantity)
         PurchaseOrderLineID = purchaseOrderLineID
     }
 
-    local success, jsonStr = mesaApi.request('company', 'Railcar/Load', json.serialize(railcarLoad), {CompanyID=companyID, LocationID=locationID}, 'POST')
+    local success, jsonStr = mesaApi.request('company', 'Railcar/Load', json.stringify(railcarLoad), {CompanyID=companyID, LocationID=locationID}, 'POST')
     if success == false or jsonStr == 'null' then
         term.write('Failed to add load to Railcar')
         nl()
@@ -345,7 +345,7 @@ local function finalizeLoading(railcar)
             FulfillmentTime = timeInfo.datetime
         }
 
-        local success, jsonStr = mesaApi.request('company', 'Fulfillment/Post', json.serialize(fulfillment), {CompanyID=companyID, LocationID=locationID}, 'POST')
+        local success, jsonStr = mesaApi.request('company', 'Fulfillment/Post', json.stringify(fulfillment), {CompanyID=companyID, LocationID=locationID}, 'POST')
         if success and jsonStr ~= 'null' then
             local savedFulfillment = json.parse(jsonStr)
             table.insert(fulfillmentIDs, savedFulfillment.FulfillmentID)
@@ -355,7 +355,7 @@ local function finalizeLoading(railcar)
     end
 
     if #fulfillmentIDs > 0 then
-       mesaApi.request('company', 'Fulfillment/IssueBillsOfLading', json.serialize(fulfillmentIDs), {CompanyID=companyID, LocationID=locationID}, 'POST')
+       mesaApi.request('company', 'Fulfillment/IssueBillsOfLading', json.stringify(fulfillmentIDs), {CompanyID=companyID, LocationID=locationID}, 'POST')
     else
         term.write('Finalizing is not possible without at least one load issued to a Purchase Order')
         nl()
@@ -372,7 +372,7 @@ local function releaseRailcar(railcar, releaseableInformation)
         GovernmentIDReleaseTo = releaseableInformation.GovernmentIDTo
     }
 
-    local success = mesaApi.request('company', 'Railcar/Release', json.serialize(releaseInfo), {CompanyID=companyID, LocationID=locationID}, 'POST')
+    local success = mesaApi.request('company', 'Railcar/Release', json.stringify(releaseInfo), {CompanyID=companyID, LocationID=locationID}, 'POST')
     if success == false then
         term.write('Failed to release railcar')
         nl()
