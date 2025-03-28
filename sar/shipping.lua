@@ -308,7 +308,7 @@ local function addLoadToRailcar(railcarID, purchaseOrderLine, item, quantity)
         PurchaseOrderLineID = purchaseOrderLineID
     }
 
-    local success, jsonStr = mesaApi.request('company', 'Railcar/Load', json.stringify(railcarLoad), {CompanyID=companyID, LocationID=locationID}, 'POST')
+    local success, jsonStr = mesaApi.request('company', 'Railcar/AddRailcarLoad', json.stringify(railcarLoad), {CompanyID=companyID, LocationID=locationID}, 'POST')
     if success == false or jsonStr == 'null' then
         term.write('Failed to add load to Railcar')
         nl()
@@ -570,8 +570,9 @@ local function performLoading()
                     nl()
                     if load.PurchaseOrderLineID ~= nil then
                         local _, row = term.getCursor()
-                        term.setCursor(#tostring(loadIndex) + 2, row)
+                        term.setCursor(#tostring(loadIndex) + 3, row)
                         term.write('PO: ' .. load.PurchaseOrderLine.PurchaseOrderID .. ' (' .. getPurchaseOrderLineDisplayString(load.PurchaseOrderLine) .. ')')
+                        nl()
                     end
                 end
             end
