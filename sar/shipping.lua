@@ -431,10 +431,10 @@ local function performLoading()
                     local firstRoute = railcar.RailcarRoutes[1]
                     if type(firstRoute.GovernmentIDTo) ~= "table" and firstRoute.GovernmentIDTo ~= nil then
                         releasebleInformation.To = firstRoute.GovernmentTo.Name
-                        releasebleInformation.CompanyIDTo = firstRoute.CompanyIDTo
+                        releasebleInformation.GovernmentIDTo = firstRoute.GovernmentIDTo
                     elseif type(firstRoute.CompanyIDTo) ~= "table" and firstRoute.CompanyIDTo ~= nil then
                         releasebleInformation.To = firstRoute.CompanyTo.Name
-                        releasebleInformation.GovernmentIDTo = firstRoute.GovernmentIDTo
+                        releasebleInformation.CompanyIDTo = firstRoute.CompanyIDTo
                     end
                 else
                     local fulfillmentPlan = getFromMesa('FulfillmentPlan/GetByRailcar/' .. railcarID)
