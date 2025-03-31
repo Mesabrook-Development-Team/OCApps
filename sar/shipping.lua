@@ -211,7 +211,7 @@ local function selectPurchaseOrderLine(selectablePurchaseOrderLines)
         term.write('---------------------------')
         nl()
         for i,purchaseOrderLine in ipairs(selectablePurchaseOrderLines) do
-            term.write(i .. ' - PO: ' .. purchaseOrderLine.PurchaseOrderID .. ' (' .. purchaseOrderLine.PurchaseOrderLineID .. ')')
+            term.write(i .. ' - PO: ' .. purchaseOrderLine.PurchaseOrderID .. ' (' .. getPurchaseOrderLineDisplayString(purchaseOrderLine) .. ')')
             nl()
         end
         term.write('---------------------------')
@@ -429,13 +429,13 @@ local function performLoading()
                     end)
 
                     local firstRoute = railcar.RailcarRoutes[1]
-                    if firstRoute.GovernmentIDTo ~= nil then
+                    if type(firstRoute.GovernmentIDTo) ~= "table" and firstRoute.GovernmentIDTo ~= nil then
                         releasebleInformation.To = firstRoute.GovernmentTo.Name
-                    elseif firstRoute.CompanyIDTo ~= nil then
+                        releasebleInformation.CompanyIDTo = firstRoute.CompanyIDTo
+                    elseif type(firstRoute.CompanyIDTo) ~= "table" and firstRoute.CompanyIDTo ~= nil then
                         releasebleInformation.To = firstRoute.CompanyTo.Name
+                        releasebleInformation.GovernmentIDTo = firstRoute.GovernmentIDTo
                     end
-                    releasebleInformation.CompanyIDTo = firstRoute.CompanyIDTo
-                    releasebleInformation.GovernmentIDTo = firstRoute.GovernmentIDTo
                 else
                     local fulfillmentPlan = getFromMesa('FulfillmentPlan/GetByRailcar/' .. railcarID)
                     if fulfillmentPlan ~= nil and #fulfillmentPlan.FulfillmentPlanRoutes > 0 then
@@ -444,13 +444,13 @@ local function performLoading()
                         end)
 
                         local firstRoute = fulfillmentPlan.FulfillmentPlanRoutes[1]
-                        if firstRoute.GovernmentIDTo ~= nil then
+                        if type(firstRoute.GovernmentIDTo) ~= "table" and firstRoute.GovernmentIDTo ~= nil then
                             releasebleInformation.To = firstRoute.GovernmentTo.Name
-                        elseif firstRoute.CompanyIDTo ~= nil then
+                            releasebleInformation.GovernmentIDTo = firstRoute.GovernmentIDTo
+                        elseif type(firstRoute.CompanyIDTo) ~= "table" and firstRoute.CompanyIDTo ~= nil then
                             releasebleInformation.To = firstRoute.CompanyTo.Name
+                            releasebleInformation.CompanyIDTo = firstRoute.CompanyIDTo
                         end
-                        releasebleInformation.CompanyIDTo = firstRoute.CompanyIDTo
-                        releasebleInformation.GovernmentIDTo = firstRoute.GovernmentIDTo
                     end
                 end
             else
@@ -461,7 +461,7 @@ local function performLoading()
                     while i <= #purchaseOrders do
                         local purchaseOrder = purchaseOrders[i]
                     
-                        if purchaseOrder.LocationIDDestination ~= locationID then
+                        if purchaseOrder.LocationIDDestination ~= locationID or purchaseOrder.Status == 5 then
                             table.remove(purchaseOrders, i)
                         else
                             i = i + 1
