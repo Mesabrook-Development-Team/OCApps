@@ -196,7 +196,7 @@ local function processFromMesaSuite()
             end
         end
 
-        if relatedPurchaseOrder ~= nil and relatedPurchaseOrder.LocationIDDestination == locationID then
+        if relatedPurchaseOrder ~= nil and relatedPurchaseOrder.LocationIDOrigin == locationID then
             selectedCars[railcar.ReportingMark .. railcar.ReportingNumber] = railcar.RailcarID
         end
     end
@@ -241,6 +241,130 @@ local function processManualEntry()
     end
 end
 
+local function getPurchaseOrderLineDisplayString(purchaseOrderLine)
+    if purchaseOrderLine == nil then
+        return ''
+    end
+
+    if purchaseOrderLine.IsService then
+        return purchaseOrderLine.ServiceDescription
+    end
+
+    local retVal = purchaseOrderLine.Quantity .. 'x '
+    if purchaseOrderLine.ItemID ~= nil then
+        retVal = retVal .. purchaseOrderLine.Item.Name
+
+        if purchaseOrderLine.ItemDescription ~= nil and purchaseOrderLine.ItemDescription ~= '' then
+            retVal = retVal .. ' - '
+        end
+    end
+
+    if purchaseOrderLine.ItemDescription ~= nil and purchaseOrderLine.ItemDescription ~= '' then
+        retVal = retVal .. purchaseOrderLine.ItemDescription
+    end
+
+    return retVal
+end
+
+local function acceptMultipleBOLs(bols)
+    print('Accepting Bills Of Lading...')
+
+    local allSuccessful = true
+    for _,bol in ipairs(bols) do
+       local success = mesaApi.request('company', 'BillOfLading/AcceptBOL', json.stringify({BillOfLadingID = bol}), {CompanyID=companyID, LocationID=locationID}, 'POST')
+       if not success then
+           allSuccessful = false
+       end
+    end
+
+    if not allSuccessful then
+        term.write('Could not accept all Bills of Lading')
+        nl()
+        term.write('Press any key to continue')
+        term.pull('key_down')
+    end
+end
+
+local function clearRailcarLoads(railcarLoads)
+    while true do
+        term.clear()
+        print('Railcar Loads')
+        print('-------------')
+
+        if #railcarLoads == 0 then
+            print('* No loads *')
+        else
+            for loadIndex,load in ipairs(railcarLoads) do
+                print(loadIndex .. ': ' .. load.Quantity .. 'x ' .. load.Item.Name)
+            end
+        end
+        print('-------------')
+        print() 
+        print("Enter load to clear, 'a' for all, or blank to return:")
+
+        local opt = text.trim(term.read())
+        if opt == nil or opt == '' then
+            return
+        end
+
+        if opt == 'a' then
+            local clearAllSuccess = true
+            for _,load in ipairs(railcarLoads) do
+                local success = mesaApi.request('company', 'Railcar/DeleteRailcarLoad/' .. load.RailcarLoadID, nil, {CompanyID=companyID, LocationID=locationID}, 'DELETE')
+                if not success then
+                    clearAllSuccess = false
+                end
+            end
+
+            if not clearAllSuccess then
+                term.write('Could not clear all loads')
+                nl()
+                term.write('Press any key to continue')
+                term.pull('key_down')
+            end
+        end
+
+        local optNum = tonumber(opt)
+        if optNum ~= nil and optNum > 0 and optNum <= #railcarLoads then
+            local success = mesaApi.request('company', 'Railcar/DeleteRailcarLoad/' .. railcarLoads[optNum].RailcarLoadID, nil, {CompanyID=companyID, LocationID=locationID}, 'DELETE')
+            if not success then
+                term.write('Could not clear load')
+                nl()
+                term.write('Press any key to continue')
+                term.pull('key_down')
+            end
+        end
+    end
+end
+
+local function completeReceivingProcess(railcarID)
+    local success = mesaApi.request('company', 'Railcar/CompleteReceivingProcess', json.stringify({RailcarID=railcarID}), {CompanyID=companyID, LocationID=locationID}, 'POST')
+    if not success then
+        term.write('Could not complete receiving process')
+        nl()
+        term.write('Press any key to continue')
+        term.pull('key_down')
+    end
+end
+
+local function releaseCar(reportingMark, railcarID, releaseableInformation)
+    local payload = {
+        RailcarID=railcarID,
+        CompanyIDReleaseTo=releaseableInformation.CompanyIDTo,
+        GovernmentIDReleaseTo=releaseableInformation.GovernmentIDTo
+    }
+
+    local success = mesaApi.request('company', 'Railcar/Release', json.stringify(payload), {CompanyID=companyID, LocationID=locationID}, 'POST')
+    if not success then
+        term.write('Could not release railcar')
+        nl()
+        term.write('Press any key to continue')
+        term.pull('key_down')
+    else
+        selectedCars[reportingMark] = nil
+    end
+end
+
 -- Perform receiving
 local function performReceiving()
     local getFromMesa = function(resource)
@@ -255,14 +379,67 @@ local function performReceiving()
     while next(selectedCars) ~= nil do
         local reportingMark, railcarID = next(selectedCars)
 
-        local railcar = nil
+        local railcar
+        local billsOfLading
+        local releaseableInformation
+        local notCompleted
+        local hasFulfillmentPlan
         local reloadData = function()
+            railcar = nil
+            billsOfLading = nil
+            releaseableInformation = nil
+            notCompleted = false
+            hasFulfillmentPlan = false
+
             term.clear()
             print('Setting up data for ' .. reportingMark .. '...')
             railcar = getFromMesa('Railcar/Get/' .. railcarID)
             if railcar == nil then
                 selectedCars[reportingMark] = nil  
                 return
+            end
+
+            local bols = getFromMesa('BillOfLading/GetByRailcar/' .. railcarID)
+            if bols ~= nil then
+                billsOfLading = {}
+                for _,bol in ipairs(bols) do
+                    table.insert(billsOfLading, bol.BillOfLadingID)
+                end
+            end
+
+            local fulfillmentPlan = getFromMesa('FulfillmentPlan/GetByRailcar/' .. railcarID)
+            hasFulfillmentPlan = fulfillmentPlan ~= nil
+            if fulfillmentPlan ~= nil and #fulfillmentPlan.FulfillmentPlanRoutes > 0 then
+                releaseableInformation = {}
+
+                table.sort(fulfillmentPlan.FulfillmentPlanRoutes, function (a, b)
+                    return a.SortOrder > b.SortOrder
+                end)
+
+                local lastRoute = fulfillmentPlan.FulfillmentPlanRoutes[1]
+                if type(lastRoute.GovernmentIDTo) ~= "table" and lastRoute.GovernmentIDTo ~= nil then
+                    releaseableInformation.GovernmentIDTo = lastRoute.GovernmentIDTo
+                    releaseableInformation.To = lastRoute.GovernmentTo.Name
+                elseif type(lastRoute.CompanyIDTo) ~= "table" and lastRoute.CompanyIDTo ~= nil then
+                    releaseableInformation.CompanyIDTo = lastRoute.CompanyIDTo
+                    releaseableInformation.To = lastRoute.CompanyTo.Name
+                end
+            end
+
+            local railcarLoads = railcar.RailcarLoads
+            if railcarLoads == nil then
+                railcarLoads = {}
+            end
+
+            for _,railcarLoad in ipairs(railcarLoads) do
+                if railcarLoad.PurchaseOrderLineID ~= nil then
+                    notCompleted = true
+                    break
+                end
+            end
+
+            if not notCompleted then
+                notCompleted = railcar.TrackDestination.CompanyIDOwner == companyID
             end
         end
 
@@ -286,14 +463,69 @@ local function performReceiving()
                 print(loadIndex .. ': ' .. load.Quantity .. 'x ' .. load.Item.Name)
                 if load.PurchaseOrderLineID ~= nil then
                     local _, row = term.getCursor()
-                    term.setCursor(#tostring(loadIndex) + 2, row)
+                    term.setCursor(#tostring(loadIndex) + 3, row)
                     term.write('PO: ' .. load.PurchaseOrderLine.PurchaseOrderID .. ' (' .. getPurchaseOrderLineDisplayString(load.PurchaseOrderLine) .. ')')
                 end
             end
         end
         print('---------------')
         print()
-        print('Enter a load index to remove, or blank to continue:')
+        local opts = {}
+
+        if not hasFulfillmentPlan then
+            print('** Marking car unloaded will send it to final destination')
+        end
+
+        print()
+        if billsOfLading ~= nil and #billsOfLading > 0 then
+            print('1 - Accept Bills Of Lading')
+            print('2 - Next Railcar')
+            print('3 - Exit')
+
+            table.insert(opts, function() acceptMultipleBOLs(billsOfLading); return false end)
+            table.insert(opts, function() selectedCars[reportingMark] = nil; return false end)
+            table.insert(opts, function() return true end)
+        else
+            local currentOptionIndex = 1
+
+            if not notCompleted then
+                print(currentOptionIndex .. ' - Clear Railcar Load(s)')
+                table.insert(opts, function() clearRailcarLoads(railcar.RailcarLoads); return false end)
+                currentOptionIndex = currentOptionIndex + 1
+
+                print(currentOptionIndex .. ' - Complete Receiving Process')
+                table.insert(opts, function() completeReceivingProcess(railcarID); return false end)
+                currentOptionIndex = currentOptionIndex + 1
+            end
+
+            if releaseableInformation ~= nil then
+                print(currentOptionIndex .. ' - Release to ' .. releaseableInformation.To)
+                table.insert(opts, function() releaseCar(reportingMark, railcarID, releaseableInformation); return false end)
+                currentOptionIndex = currentOptionIndex + 1
+            end
+
+            print(currentOptionIndex .. ' - Next Railcar')
+            table.insert(opts, function() selectedCars[reportingMark] = nil; return false end)
+            currentOptionIndex = currentOptionIndex + 1
+
+            print(currentOptionIndex .. ' - Exit')
+            table.insert(opts, function() return true end)
+        end
+        print()
+        term.write('Enter an option:')
+        local opt = tonumber(text.trim(term.read()))
+
+        if opt ~= nil then
+            local optFunc = opts[opt]
+            if optFunc ~= nil then
+                local result = optFunc()
+                if result == true then
+                    return
+                else
+                    reloadData()
+                end
+            end
+        end
         ::continue::
     end
 end

@@ -579,7 +579,7 @@ local function performLoading()
             term.write('---------------')
             nl()
             if releasebleInformation.mustRelease then
-                term.write('1 - Relase to ' .. releasebleInformation.To)
+                term.write('1 - Release to ' .. releasebleInformation.To)
                 nl()
                 term.write('2 - Next Railcar')
                 nl()
