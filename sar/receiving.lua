@@ -304,6 +304,11 @@ local function clearRailcarLoads(railcarLoads)
         else
             for loadIndex,load in ipairs(railcarLoads) do
                 print(loadIndex .. ': ' .. load.Quantity .. 'x ' .. load.Item.Name)
+                if load.PurchaseOrderLineID ~= nil then
+                    local _, row = term.getCursor()
+                    term.setCursor(#tostring(loadIndex) + 3, row)
+                    print('PO: ' .. load.PurchaseOrderLine.PurchaseOrderID .. ' (' .. getPurchaseOrderLineDisplayString(load.PurchaseOrderLine) .. ')')
+                end
             end
         end
         print('-------------')
@@ -498,7 +503,7 @@ local function performReceiving()
         else
             local currentOptionIndex = 1
 
-            if not notCompleted then
+            if notCompleted then
                 print(currentOptionIndex .. ' - Clear Railcar Load(s)')
                 table.insert(opts, function() clearRailcarLoads(railcar.RailcarLoads); return false end)
                 currentOptionIndex = currentOptionIndex + 1
