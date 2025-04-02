@@ -139,6 +139,8 @@ local function configureLocation()
     local file = io.open('/etc/sar/loc.cfg', 'w')
     file:write(serialization.serialize(fileContents))
     file:close()
+
+    return true
 end
 
 local function verifySetup()
