@@ -20,9 +20,17 @@ end
 
 local selectedCars = {}
 
-local locationFile = io.open('/etc/sar/loc.cfg', 'r')
-local locFileContents = serialization.unserialize(locationFile:read('*a'))
-locationFile:close()
+local locFileContents = {}
+
+if filesystem.exists('/etc/sar/loc.cfg') then
+    local file = io.open('/etc/sar/loc.cfg', 'r')
+    locFileContents = serialization.unserialize(file:read('*a'))
+    file:close()
+
+    if locFileContents == nil then
+        locFileContents = {}
+    end
+end
 
 local companyID = locFileContents.CompanyID
 local locationID = locFileContents.LocationID
