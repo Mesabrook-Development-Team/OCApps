@@ -509,7 +509,13 @@ local function performReceiving()
 
             if notCompleted then
                 print(currentOptionIndex .. ' - Clear Railcar Load(s)')
-                table.insert(opts, function() clearRailcarLoads(railcar.RailcarLoads); return false end)
+                table.insert(opts, function() 
+                    clearRailcarLoads(railcar.RailcarLoads);
+                    if #railcar.RailcarLoads <= 0 and not hasFulfillmentPlan then
+                        selectedCars[reportingMark] = nil
+                    end
+                    return false
+                end)
                 currentOptionIndex = currentOptionIndex + 1
 
                 print(currentOptionIndex .. ' - Complete Receiving Process')
