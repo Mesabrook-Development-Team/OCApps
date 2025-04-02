@@ -411,7 +411,9 @@ local function performReceiving()
             if bols ~= nil then
                 billsOfLading = {}
                 for _,bol in ipairs(bols) do
-                    table.insert(billsOfLading, bol.BillOfLadingID)
+                    if bol.CompanyIDConsignee == companyID then
+                        table.insert(billsOfLading, bol.BillOfLadingID)
+                    end
                 end
             end
 
@@ -440,7 +442,7 @@ local function performReceiving()
             end
 
             for _,railcarLoad in ipairs(railcarLoads) do
-                if railcarLoad.PurchaseOrderLineID ~= nil then
+                if type(railcarLoad.PurchaseOrderLineID) ~= "table" and railcarLoad.PurchaseOrderLineID ~= nil then
                     notCompleted = true
                     break
                 end
@@ -472,7 +474,7 @@ local function performReceiving()
                 if load.PurchaseOrderLineID ~= nil then
                     local _, row = term.getCursor()
                     term.setCursor(#tostring(loadIndex) + 3, row)
-                    term.write('PO: ' .. load.PurchaseOrderLine.PurchaseOrderID .. ' (' .. getPurchaseOrderLineDisplayString(load.PurchaseOrderLine) .. ')')
+                    print('PO: ' .. load.PurchaseOrderLine.PurchaseOrderID .. ' (' .. getPurchaseOrderLineDisplayString(load.PurchaseOrderLine) .. ')')
                 end
             end
         end
@@ -529,8 +531,6 @@ local function performReceiving()
                 local result = optFunc()
                 if result == true then
                     return
-                else
-                    reloadData()
                 end
             end
         end
