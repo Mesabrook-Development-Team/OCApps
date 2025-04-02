@@ -304,7 +304,7 @@ local function clearRailcarLoads(railcarLoads)
         else
             for loadIndex,load in ipairs(railcarLoads) do
                 print(loadIndex .. ': ' .. load.Quantity .. 'x ' .. load.Item.Name)
-                if load.PurchaseOrderLineID ~= nil then
+                if type(load.PurchaseOrderLineID) ~= "table" and load.PurchaseOrderLineID ~= nil then
                     local _, row = term.getCursor()
                     term.setCursor(#tostring(loadIndex) + 3, row)
                     print('PO: ' .. load.PurchaseOrderLine.PurchaseOrderID .. ' (' .. getPurchaseOrderLineDisplayString(load.PurchaseOrderLine) .. ')')
@@ -313,7 +313,7 @@ local function clearRailcarLoads(railcarLoads)
         end
         print('-------------')
         print() 
-        print("Enter load to clear, 'a' for all, or blank to return:")
+        term.write("Enter load to clear, 'a' for all, or blank to return:")
 
         local opt = text.trim(term.read())
         if opt == nil or opt == '' then
@@ -322,10 +322,12 @@ local function clearRailcarLoads(railcarLoads)
 
         if opt == 'a' then
             local clearAllSuccess = true
-            for _,load in ipairs(railcarLoads) do
+            for loadIndex,load in ipairs(railcarLoads) do
                 local success = mesaApi.request('company', 'Railcar/DeleteRailcarLoad/' .. load.RailcarLoadID, nil, {CompanyID=companyID, LocationID=locationID}, 'DELETE')
                 if not success then
                     clearAllSuccess = false
+                else
+                    railcarLoads[loadIndex] = nil
                 end
             end
 
@@ -345,6 +347,8 @@ local function clearRailcarLoads(railcarLoads)
                 nl()
                 term.write('Press any key to continue')
                 term.pull('key_down')
+            else
+                railcarLoads[optNum] = nil
             end
         end
     end
@@ -476,7 +480,7 @@ local function performReceiving()
         else
             for loadIndex,load in ipairs(railcar.RailcarLoads) do
                 print(loadIndex .. ': ' .. load.Quantity .. 'x ' .. load.Item.Name)
-                if load.PurchaseOrderLineID ~= nil then
+                if type(load.PurchaseOrderLineID) ~= "table" and load.PurchaseOrderLineID ~= nil then
                     local _, row = term.getCursor()
                     term.setCursor(#tostring(loadIndex) + 3, row)
                     print('PO: ' .. load.PurchaseOrderLine.PurchaseOrderID .. ' (' .. getPurchaseOrderLineDisplayString(load.PurchaseOrderLine) .. ')')

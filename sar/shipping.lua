@@ -568,7 +568,7 @@ local function performLoading()
                 for loadIndex,load in ipairs(railcar.RailcarLoads) do
                     term.write(loadIndex .. ': ' .. load.Quantity .. 'x ' .. load.Item.Name)
                     nl()
-                    if load.PurchaseOrderLineID ~= nil then
+                    if type(load.PurchaseOrderLineID) ~= "table" and load.PurchaseOrderLineID ~= nil then
                         local _, row = term.getCursor()
                         term.setCursor(#tostring(loadIndex) + 3, row)
                         term.write('PO: ' .. load.PurchaseOrderLine.PurchaseOrderID .. ' (' .. getPurchaseOrderLineDisplayString(load.PurchaseOrderLine) .. ')')
