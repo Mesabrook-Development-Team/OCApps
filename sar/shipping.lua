@@ -4,10 +4,15 @@ local mesaApi = require('mesasuite_api')
 local json = require('json')
 local text = require('text')
 local colors = require('colors')
-local modem = require('component').modem
+local component = require('component')
 local event = require('event')
 local filesystem = require('filesystem')
 local aei_driver = require('sar/aei_driver')
+
+local modem = nil
+if component.isAvailable('modem') then
+    modem = component.modem
+end
 
 local companyID = nil
 local locationID = nil
