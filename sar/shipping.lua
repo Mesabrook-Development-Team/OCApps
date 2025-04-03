@@ -355,7 +355,7 @@ local function finalizeLoading(railcar)
     end
 
     if #fulfillmentIDs > 0 then
-       mesaApi.request('company', 'Fulfillment/IssueBillsOfLading', json.stringify(fulfillmentIDs), {CompanyID=companyID, LocationID=locationID}, 'POST')
+       mesaApi.request('company', 'Fulfillment/IssueBillsOfLading', json.stringify({FulfillmentIDs=fulfillmentIDs}), {CompanyID=companyID, LocationID=locationID}, 'POST')
     else
         term.write('Finalizing is not possible without at least one load issued to a Purchase Order')
         nl()
