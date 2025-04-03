@@ -552,7 +552,7 @@ local function performLoading()
             term.clear()
             term.write(reportingMark)
             nl()
-            if type(railcar.RailcarLocation.Track.Name) ~= "table" then
+            if type(railcar.RailLocation.Track.Name) ~= "table" then
                 term.write('Track: ' .. railcar.RailLocation.Track.Name)
             elseif type(railcar.RailLocation.Train.TrainSymbol.Name) ~= "table" then
                 term.write('Train: ' .. railcar.RailLocation.Train.TrainSymbol.Name)
