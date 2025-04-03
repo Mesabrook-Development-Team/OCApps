@@ -140,6 +140,17 @@ local function configureLocation()
     file:write(serialization.serialize(fileContents))
     file:close()
 
+    file = io.open('/etc/rc.d/sar_reboot.lua', 'w')
+    file:write("function start()")
+    file:write("require('filesystem').remove('/etc/rc.d/sar_reboot.lua')")
+    file:write("require('shell').execute('sar')")
+    file:write("end")
+    file:close()
+
+    require('shell').execute('rc sar_reboot enable')
+
+    require('computer').shutdown(true)
+
     return true
 end
 
