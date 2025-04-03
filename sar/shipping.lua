@@ -398,7 +398,7 @@ local function performLoading()
 
         local railcar = nil
         local loadedQuantity = 0
-        local releasebleInformation = {mustRelease = false}
+        local releasebleInformation = {mustRelease = false, finalizedOnTrain = false}
         local selectablePurchaseOrderLines = {}
         local selectedPurchaseOrderLine = nil
         local selectedItem = nil
@@ -422,28 +422,14 @@ local function performLoading()
 
             local fulfillments = getFromMesa('Fulfillment/GetCurrentByRailcar/' .. railcarID)
             if fulfillments ~= nil and #fulfillments > 0 then
-                releasebleInformation.mustRelease = true
-                if #railcar.RailcarRoutes > 0 then
-                    table.sort(railcar.RailcarRoutes, function (a, b)
-                    return a.SortOrder < b.SortOrder
-                    end)
-
-                    local firstRoute = railcar.RailcarRoutes[1]
-                    if type(firstRoute.GovernmentIDTo) ~= "table" and firstRoute.GovernmentIDTo ~= nil then
-                        releasebleInformation.To = firstRoute.GovernmentTo.Name
-                        releasebleInformation.GovernmentIDTo = firstRoute.GovernmentIDTo
-                    elseif type(firstRoute.CompanyIDTo) ~= "table" and firstRoute.CompanyIDTo ~= nil then
-                        releasebleInformation.To = firstRoute.CompanyTo.Name
-                        releasebleInformation.CompanyIDTo = firstRoute.CompanyIDTo
-                    end
-                else
-                    local fulfillmentPlan = getFromMesa('FulfillmentPlan/GetByRailcar/' .. railcarID)
-                    if fulfillmentPlan ~= nil and #fulfillmentPlan.FulfillmentPlanRoutes > 0 then
-                        table.sort(fulfillmentPlan.FulfillmentPlanRoutes, function (a, b)
-                            return a.SortOrder < b.SortOrder
+                if type(railcar.RailLocation.TrainID) == "table" or railcar.RailLocation.TrainID == nil then -- If railcar is on a train, it can't be released
+                    releasebleInformation.mustRelease = true
+                    if #railcar.RailcarRoutes > 0 then
+                        table.sort(railcar.RailcarRoutes, function (a, b)
+                        return a.SortOrder < b.SortOrder
                         end)
 
-                        local firstRoute = fulfillmentPlan.FulfillmentPlanRoutes[1]
+                        local firstRoute = railcar.RailcarRoutes[1]
                         if type(firstRoute.GovernmentIDTo) ~= "table" and firstRoute.GovernmentIDTo ~= nil then
                             releasebleInformation.To = firstRoute.GovernmentTo.Name
                             releasebleInformation.GovernmentIDTo = firstRoute.GovernmentIDTo
@@ -451,7 +437,25 @@ local function performLoading()
                             releasebleInformation.To = firstRoute.CompanyTo.Name
                             releasebleInformation.CompanyIDTo = firstRoute.CompanyIDTo
                         end
+                    else
+                        local fulfillmentPlan = getFromMesa('FulfillmentPlan/GetByRailcar/' .. railcarID)
+                        if fulfillmentPlan ~= nil and #fulfillmentPlan.FulfillmentPlanRoutes > 0 then
+                            table.sort(fulfillmentPlan.FulfillmentPlanRoutes, function (a, b)
+                                return a.SortOrder < b.SortOrder
+                            end)
+
+                            local firstRoute = fulfillmentPlan.FulfillmentPlanRoutes[1]
+                            if type(firstRoute.GovernmentIDTo) ~= "table" and firstRoute.GovernmentIDTo ~= nil then
+                                releasebleInformation.To = firstRoute.GovernmentTo.Name
+                                releasebleInformation.GovernmentIDTo = firstRoute.GovernmentIDTo
+                            elseif type(firstRoute.CompanyIDTo) ~= "table" and firstRoute.CompanyIDTo ~= nil then
+                                releasebleInformation.To = firstRoute.CompanyTo.Name
+                                releasebleInformation.CompanyIDTo = firstRoute.CompanyIDTo
+                            end
+                        end
                     end
+                else
+                    releasebleInformation.finalizedOnTrain = true
                 end
             else
                 local purchaseOrders = getFromMesa('PurchaseOrder/GetAllRelatedToLocation')
@@ -583,7 +587,20 @@ local function performLoading()
             end
             term.write('---------------')
             nl()
-            if releasebleInformation.mustRelease then
+            if releasebleInformation.finalizedOnTrain then
+                print('1 - Next Railcar')
+                print('2 - Exit')
+                print()
+                term.write('Enter an option:')
+                local opt = tonumber(text.trim(term.read()))
+
+                if opt == 1 then -- Next railcar
+                    selectedCars[reportingMark] = nil
+                    break
+                elseif opt == 2 then -- Exit
+                    return
+                end
+            elseif releasebleInformation.mustRelease then
                 term.write('1 - Release to ' .. releasebleInformation.To)
                 nl()
                 term.write('2 - Next Railcar')
