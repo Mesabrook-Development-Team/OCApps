@@ -428,7 +428,7 @@ local function performReceiving()
 
             local fulfillmentPlan = getFromMesa('FulfillmentPlan/GetByRailcar/' .. railcarID)
             hasFulfillmentPlan = fulfillmentPlan ~= nil
-            if fulfillmentPlan ~= nil and #fulfillmentPlan.FulfillmentPlanRoutes > 0 then
+            if fulfillmentPlan ~= nil and #fulfillmentPlan.FulfillmentPlanRoutes > 0 and (type(railcar.RailLocation.TrainID) == "table" or railcar.RailLocation.TrainID == nil) then
                 releaseableInformation = {}
 
                 table.sort(fulfillmentPlan.FulfillmentPlanRoutes, function (a, b)
