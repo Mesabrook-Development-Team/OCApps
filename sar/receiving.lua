@@ -470,7 +470,11 @@ local function performReceiving()
 
         term.clear()
         print(reportingMark)
-        print('Track: ' .. railcar.RailLocation.Track.Name)
+        if type(railcar.RailcarLocation.Track.Name) ~= "table" then
+            term.write('Track: ' .. railcar.RailLocation.Track.Name)
+        elseif type(railcar.RailLocation.Train.TrainSymbol.Name) ~= "table" then
+            term.write('Train: ' .. railcar.RailLocation.Train.TrainSymbol.Name)
+        end
         print('Position: ' .. railcar.RailLocation.Position)
         print()
         print('Current Loads:')
