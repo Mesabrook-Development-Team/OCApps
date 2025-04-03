@@ -214,7 +214,7 @@ end
 local function processManualEntry()
     while true do
         term.clear()
-        term.write('Cars to Ship:')
+        term.write('Cars to Receive:')
         nl()
         term.write('---------------')
         nl()
@@ -367,8 +367,8 @@ end
 local function releaseCar(reportingMark, railcarID, releaseableInformation)
     local payload = {
         RailcarID=railcarID,
-        CompanyIDReleaseTo=releaseableInformation.CompanyIDTo,
-        GovernmentIDReleaseTo=releaseableInformation.GovernmentIDTo
+        CompanyIDReleaseTo=releaseableInformation.CompanyIDFrom,
+        GovernmentIDReleaseTo=releaseableInformation.GovernmentIDFrom
     }
 
     local success = mesaApi.request('company', 'Railcar/Release', json.stringify(payload), {CompanyID=companyID, LocationID=locationID}, 'POST')
@@ -436,12 +436,12 @@ local function performReceiving()
                 end)
 
                 local lastRoute = fulfillmentPlan.FulfillmentPlanRoutes[1]
-                if type(lastRoute.GovernmentIDTo) ~= "table" and lastRoute.GovernmentIDTo ~= nil then
-                    releaseableInformation.GovernmentIDTo = lastRoute.GovernmentIDTo
-                    releaseableInformation.To = lastRoute.GovernmentTo.Name
-                elseif type(lastRoute.CompanyIDTo) ~= "table" and lastRoute.CompanyIDTo ~= nil then
-                    releaseableInformation.CompanyIDTo = lastRoute.CompanyIDTo
-                    releaseableInformation.To = lastRoute.CompanyTo.Name
+                if type(lastRoute.GovernmentIDFrom) ~= "table" and lastRoute.GovernmentIDFrom ~= nil then
+                    releaseableInformation.GovernmentIDFrom = lastRoute.GovernmentIDFrom
+                    releaseableInformation.From = lastRoute.GovernmentFrom.Name
+                elseif type(lastRoute.CompanyIDFrom) ~= "table" and lastRoute.CompanyIDFrom ~= nil then
+                    releaseableInformation.CompanyIDFrom = lastRoute.CompanyIDFrom
+                    releaseableInformation.From = lastRoute.CompanyFrom.Name
                 end
             end
 
@@ -471,9 +471,9 @@ local function performReceiving()
         term.clear()
         print(reportingMark)
         if type(railcar.RailLocation.Track.Name) ~= "table" then
-            term.write('Track: ' .. railcar.RailLocation.Track.Name)
+            print('Track: ' .. railcar.RailLocation.Track.Name)
         elseif type(railcar.RailLocation.Train.TrainSymbol.Name) ~= "table" then
-            term.write('Train: ' .. railcar.RailLocation.Train.TrainSymbol.Name)
+            print('Train: ' .. railcar.RailLocation.Train.TrainSymbol.Name)
         end
         print('Position: ' .. railcar.RailLocation.Position)
         print()
@@ -528,7 +528,7 @@ local function performReceiving()
             end
 
             if releaseableInformation ~= nil then
-                print(currentOptionIndex .. ' - Release to ' .. releaseableInformation.To)
+                print(currentOptionIndex .. ' - Release to ' .. releaseableInformation.From)
                 table.insert(opts, function() releaseCar(reportingMark, railcarID, releaseableInformation); return false end)
                 currentOptionIndex = currentOptionIndex + 1
             end
