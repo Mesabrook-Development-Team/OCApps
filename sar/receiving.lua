@@ -355,7 +355,7 @@ local function clearRailcarLoads(railcarLoads)
 end
 
 local function completeReceivingProcess(railcarID)
-    local success = mesaApi.request('company', 'Railcar/CompleteReceivingProcess', json.stringify({RailcarID=railcarID}), {CompanyID=companyID, LocationID=locationID}, 'POST')
+    local success = mesaApi.request('company', 'Railcar/CompleteReceiving', json.stringify({RailcarID=railcarID}), {CompanyID=companyID, LocationID=locationID}, 'POST')
     if not success then
         term.write('Could not complete receiving process')
         nl()

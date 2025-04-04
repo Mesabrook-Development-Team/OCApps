@@ -339,7 +339,7 @@ local function finalizeLoading(railcar)
     local fulfillmentIDs = {}
 
     for _,load in ipairs(railcar.RailcarLoads) do
-        if load.PurchaseOrderLineID == nil or load.Quantity == nil or load.Quantity <= 0 then
+        if type(load.PurchaseOrderLineID) == "table" or load.PurchaseOrderLineID == nil or tonumber(load.Quantity) == nil or tonumber(load.Quantity) <= 0 then
             goto continue
         end
 
