@@ -169,6 +169,8 @@ local function verifySetup()
         nl()
         term.write("Run mesalogin and try again")
         nl()
+        require('computer').beep(1000, 0.5)
+        require('computer').beep(1000, 0.1)
         return false
     end
 
@@ -180,6 +182,8 @@ local function verifySetup()
             term.write('Required Company and Location information is ' .. reason .. '.', true)
             nl()
             nl()
+            require('computer').beep(1000, 0.5)
+            require('computer').beep(1000, 0.5)
             term.write(cta .. ' now (y/n)?')
             local opt = term.read()
             if opt:gsub("%s+", "") == "y" then -- Do configuration
@@ -210,6 +214,9 @@ local function verifySetup()
     if not success then
        term.write('Could not verify your location permissions')
        nl()
+       require('computer').beep(1000, 0.5)
+       require('computer').beep(1000, 0.5)
+       require('computer').beep(1000, 0.5)
        return false
     end
 
@@ -235,7 +242,6 @@ if verifySetup() == false then
     return
 end
 
-require('computer').beep(1000, 0.1)
 require('computer').beep(1000, 0.1)
 
 mainMenu()
