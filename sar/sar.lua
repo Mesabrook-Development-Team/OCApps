@@ -1,3 +1,5 @@
+local VERSION = '1.0'
+
 local fs = require("filesystem")
 local term = require("term")
 local serialization = require("serialization")
@@ -19,6 +21,8 @@ local function mainMenu()
 
         term.write('* SHIPPING & RECEIVING *')
         nl()
+        print('v' .. VERSION)
+        print()
         term.write(entityName)
         nl()
         nl()
@@ -230,5 +234,8 @@ end
 if verifySetup() == false then
     return
 end
+
+require('computer').beep(1000, 0.1)
+require('computer').beep(1000, 0.1)
 
 mainMenu()
